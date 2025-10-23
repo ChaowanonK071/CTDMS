@@ -160,7 +160,7 @@ $userData = getUserData();
                       name="subject_code"
                       type="text"
                       class="form-control"
-                      placeholder="เช่น CS101, MATH201"
+                      placeholder="เช่น 0451110164, 04511409"
                       maxlength="20"
                       required
                     />

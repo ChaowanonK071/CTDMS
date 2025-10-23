@@ -1091,8 +1091,8 @@ async function processBatchGeneration(startDate, endDate) {
         finalMessage += `• ข้ามวันหยุด: ${totalResults.skipped_holidays} วัน\n`;
         
         if (totalResults.compensation_details.length > 0) {
-            finalMessage += `\n🔄 รายการที่ต้องชดเชย: ${totalResults.compensation_details.length} รายการ\n`;
-            finalMessage += `💡 กรุณาไปที่หน้า 'จัดการการชดเชย' เพื่อกำหนดวันที่ชดเชย`;
+            finalMessage += `\nรายการที่ต้องชดเชย: ${totalResults.compensation_details.length} รายการ\n`;
+            finalMessage += `กรุณาไปที่หน้า 'จัดการการชดเชย' เพื่อกำหนดวันที่ชดเชย`;
         }
         
         showSuccess(finalMessage);
@@ -1108,7 +1108,7 @@ async function processBatchGeneration(startDate, endDate) {
         let errorMessage = 'เกิดข้อผิดพลาดใน Batch Processing:\n' + error.message;
         
         if (error.message.includes('timeout') || error.message.includes('execution time')) {
-            errorMessage += '\n\n💡 ข้อแนะนำ:';
+            errorMessage += '\n\nข้อแนะนำ:';
             errorMessage += '\n• ลองแบ่งช่วงวันที่ให้สั้นลง';
             errorMessage += '\n• ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต';
             errorMessage += '\n• ลองใหม่ในเวลาที่เครือข่ายไม่ติดขัด';
@@ -1584,7 +1584,7 @@ async function testGoogleConnection() {
         let errorMessage = 'เกิดข้อผิดพลาดในการทดสอบ: ' + error.message;
         
         if (error.message.includes('400')) {
-            errorMessage += '\n\n💡 แนะนำการแก้ไข:';
+            errorMessage += '\n\nแนะนำการแก้ไข:';
             errorMessage += '\n• ตรวจสอบการเชื่อมต่อ Google Calendar';
             errorMessage += '\n• ลองรีเฟรช Token';
             errorMessage += '\n• ตรวจสอบ Console สำหรับข้อมูลเพิ่มเติม';
@@ -1696,7 +1696,7 @@ async function updateGoogleCalendarStats() {
         }
         
     } catch (error) {
-        console.warn('⚠️ Failed to update Google Calendar stats:', error.message);
+        console.warn('Failed to update Google Calendar stats:', error.message);
     }
 }
 
@@ -1727,7 +1727,7 @@ async function updateStats() {
         }
         
     } catch (error) {
-        console.warn('⚠️ Stats update failed:', error.message);
+        console.warn('Stats update failed:', error.message);
         
         if (apiWorking) {
             apiWorking = false;

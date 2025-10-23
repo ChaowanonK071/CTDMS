@@ -787,14 +787,6 @@ $userData = getUserData();
                                 </label>
                                 <input type="date" class="form-control" id="makeupDate" onchange="loadRoomAvailability()" min="2025-06-11">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">
-                                    <i class="fas fa-info-circle"></i> ข้อมูลวันที่เลือก
-                                </label>
-                                <div class="date-info" id="dateInfo">
-                                    <small class="text-muted">กรุณาเลือกวันที่สอนชดเชย</small>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

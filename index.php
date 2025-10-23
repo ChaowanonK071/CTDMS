@@ -589,15 +589,15 @@ try {
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label for="start_time_slot_id" class="form-label">เวลาเริ่มต้น <span class="required-field">*</span></label>
+                                    <label for="start_time_slot_id" class="form-label">คาบเริ่มต้น <span class="required-field">*</span></label>
                                     <select id="start_time_slot_id" name="start_time_slot_id" class="form-select" required>
-                                        <option value="">-- เลือกเวลาเริ่มต้น --</option>
+                                        <option value="">-- เลือกคาบเริ่มต้น --</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="end_time_slot_id" class="form-label">เวลาสิ้นสุด <span class="required-field">*</span></label>
+                                    <label for="end_time_slot_id" class="form-label">คาบสิ้นสุด <span class="required-field">*</span></label>
                                     <select id="end_time_slot_id" name="end_time_slot_id" class="form-select" required>
-                                        <option value="">-- เลือกเวลาสิ้นสุด --</option>
+                                        <option value="">-- เลือกคาบสิ้นสุด --</option>
                                     </select>
                                 </div>
                             </div>
@@ -1785,8 +1785,8 @@ function saveSchedule() {
         { field: "user_id", message: "กรุณาเลือกอาจารย์หลัก" },
         { field: "subject_id", message: "กรุณาเลือกวิชา" },
         { field: "day_of_week", message: "กรุณาเลือกวัน", value: dayOfWeek },
-        { field: "start_time_slot_id", message: "กรุณาเลือกเวลาเริ่มต้น" },
-        { field: "end_time_slot_id", message: "กรุณาเลือกเวลาสิ้นสุด" }
+        { field: "start_time_slot_id", message: "กรุณาเลือกคาบเริ่มต้น" },
+        { field: "end_time_slot_id", message: "กรุณาเลือกคาบสิ้นสุด" }
     ];
     
     for (const req of requiredFields) {
@@ -1832,7 +1832,7 @@ function saveSchedule() {
     const endTimeSlotId = parseInt($("#end_time_slot_id").val());
     
     if (endTimeSlotId < startTimeSlotId) {
-        alert("เวลาสิ้นสุดต้องมากกว่าหรือเท่ากับเวลาเริ่มต้น");
+        alert("คาบสิ้นสุดต้องมากกว่าหรือเท่ากับคาบเริ่มต้น");
         $("#end_time_slot_id").focus();
         return;
     }
@@ -1969,7 +1969,7 @@ function validateScheduleData(data) {
     if (data.end_time_slot_id < data.start_time_slot_id) {
         return {
             valid: false,
-            message: "เวลาสิ้นสุดต้องมากกว่าหรือเท่ากับเวลาเริ่มต้น"
+            message: "คาบสิ้นสุดต้องมากกว่าหรือเท่ากับคาบเริ่มต้น"
         };
     }
     

@@ -1420,12 +1420,11 @@ function updateCompensationTable() {
                     </button>
                 `;
                 break;
-                
+                // <button class="btn btn-sm btn-outline-warning" onclick="requestCancelCompensation(${comp.cancellation_id})" title="ขอยกเลิกรายการ">
+                //     <i class="fas fa-ban"></i>
+                // </button>
             case 'ดำเนินการแล้ว':
                 actionButtons += `
-                    <button class="btn btn-sm btn-outline-warning" onclick="requestCancelCompensation(${comp.cancellation_id})" title="ขอยกเลิกรายการ">
-                        <i class="fas fa-ban"></i>
-                    </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="exportSingleCompensation(${comp.cancellation_id})" title="Export PDF">
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
