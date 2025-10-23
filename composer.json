@@ -1,0 +1,10 @@
+{
+    "config": {
+        "platform": {
+            "php": "8.1"
+        }
+    },
+    "require": {
+        "tecnickcom/tcpdf": "^6.10"
+    }
+}
