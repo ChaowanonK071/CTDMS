@@ -536,7 +536,7 @@ function saveSubject() {
         dataType: "json",
         contentType: "application/json",
         data: JSON.stringify(data),
-        timeout: 10000, // เพิ่ม timeout
+        timeout: 10000,
         beforeSend: function(xhr) {
             console.log("=== Before Send ===");
             console.log("XHR object:", xhr);

@@ -466,9 +466,8 @@ function saveModuleGroup() {
 
 // ลบกลุ่มโมดูล
 function deleteModuleGroup(groupId) {
-    // ยังไม่รองรับการลบผ่าน API (ต้องเพิ่ม endpoint ใน year_level_api.php)
     alert("ยังไม่รองรับการลบกลุ่มโมดูลผ่าน API");
-    // ตัวอย่าง: $.ajax({ url: "...", type: "DELETE", ... });
+
 }
 
 // เพิ่มฟังก์ชันสำหรับเพิ่มโมดูลใหม่

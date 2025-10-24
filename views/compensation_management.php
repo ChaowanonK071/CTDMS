@@ -917,7 +917,7 @@ $userData = getUserData();
         
         // ฟังก์ชันเรียก API - อัปเดตใหม่
         async function callAPI(action, data = {}) {
-            console.log('🔄 กำลังเรียก API:', action, data);
+            console.log('กำลังเรียก API:', action, data);
             
             const formData = new FormData();
             formData.append('action', action);
@@ -941,7 +941,7 @@ $userData = getUserData();
                 }
 
                 const result = await response.json();
-                console.log('✅ ได้รับข้อมูล:', result);
+                console.log('ได้รับข้อมูล:', result);
 
                 if (!result.success) {
                     throw new Error(result.message || 'การเรียก API ไม่สำเร็จ');
@@ -949,12 +949,12 @@ $userData = getUserData();
 
                 return result;
             } catch (error) {
-                console.error('🔥 Exception:', error);
+                console.error('Exception:', error);
                 throw new Error('เกิดข้อผิดพลาด: ' + error.message);
             }
         }
         
-        // ฟังก์ชันดึงข้อมูลการชดเชย - ปรับปรุงใหม่
+        // ฟังก์ชันดึงข้อมูลการชดเชย
         async function loadCompensationData() {
             const urlParams = new URLSearchParams(window.location.search);
             const cancellationId = urlParams.get('id') || urlParams.get('cancellation_id');
@@ -1006,7 +1006,7 @@ $userData = getUserData();
             }
         }
         
-        // ฟังก์ชันจัดรูปแบบวันที่ - เพิ่มฟังก์ชันที่หายไป
+        // ฟังก์ชันจัดรูปแบบวันที่
         function formatThaiDate(dateString) {
             if (!dateString) return '';
             
@@ -1068,7 +1068,7 @@ $userData = getUserData();
             return `(${startTime}-${endTime})`;
         }
         
-        // ฟังก์ชันแสดงข้อมูลการชดเชย - ปรับปรุงให้ใช้ข้อมูลที่ถูกต้อง
+        // ฟังก์ชันแสดงข้อมูลการชดเชย
         function displayCompensationInfo(data) {
             const compensationInfo = document.getElementById('compensationInfo');
 
@@ -1156,7 +1156,7 @@ $userData = getUserData();
             }
         }
 
-        // ฟังก์ชัน resetSelection - เพิ่มฟังก์ชันที่หายไป
+        // ฟังก์ชัน resetSelection
         function resetSelection() {
             clearSelection();
             
@@ -1195,7 +1195,7 @@ $userData = getUserData();
             document.getElementById('selectionSummary').style.display = 'none';
         }
 
-        // ฟังก์ชันล้างการเลือกห้องเรียน - เพิ่มฟังก์ชันที่หายไป
+        // ฟังก์ชันล้างการเลือกห้องเรียน
         function clearRoomSelection() {
             // ลบการเลือกทุก slot ในห้องที่เลือกอยู่
             document.querySelectorAll('.time-slot-availability.selected').forEach(slot => {
@@ -1210,8 +1210,7 @@ $userData = getUserData();
             // รีเซ็ตตัวแปร
             selectedRoom = null;
             selectedTimeSlots = [];
-            
-            // อัปเดตฟอร์ม
+
             updateFormValues();
         }
 
@@ -1232,7 +1231,6 @@ $userData = getUserData();
                 document.getElementById('availabilityLegend').style.display = 'none';
                 document.getElementById('roomsList').innerHTML = '';
                 
-                // เรียก API ดึงข้อมูลความพร้อมของห้อง
                 const result = await callAPI('get_detailed_room_availability', {
                     date: selectedDate,
                     cancellation_id: document.getElementById('cancellation_id').value
@@ -1284,7 +1282,6 @@ $userData = getUserData();
                 const availableSlots = roomData.available_slots || [];
                 const occupiedSlots = roomData.occupied_slots || [];
                 
-                // กำหนดสีและไอคอนตามสถานะ
                 let statusClass = 'available';
                 let statusIcon = 'fas fa-check-circle';
                 let statusText = 'ว่าง';
@@ -1370,7 +1367,7 @@ $userData = getUserData();
             }).join('');
         }
         
-        // ฟังก์ชันเลือก time slot - ปรับปรุงให้รองรับการเลือกช่วง
+        // ฟังก์ชันเลือก time slot
         function selectTimeSlot(timeSlotId, classroomId, startTime, endTime) {
             const slotElement = event.target;
             const slotNumber = parseInt(slotElement.textContent.split('\n')[0]);
@@ -1404,20 +1401,18 @@ $userData = getUserData();
             // ตั้งค่าห้องที่เลือก
             selectedRoom = classroomId;
             
-            // เพิ่ม slot เข้าอาเรย์
             if (!selectedTimeSlots.includes(timeSlotId)) {
                 selectedTimeSlots.push(timeSlotId);
-                selectedTimeSlots.sort((a, b) => a - b); // เรียงลำดับ
+                selectedTimeSlots.sort((a, b) => a - b); 
             }
             
             // เพิ่มคลาส selected
             slotElement.classList.add('selected');
-            
-            // อัปเดตฟอร์ม
+
             updateFormValues();
         }
         
-        // ฟังก์ชันล้างการเลือกห้องเรียน - เพิ่มฟังก์ชันที่หายไป
+        // ฟังก์ชันล้างการเลือกห้องเรียน
         function clearRoomSelection() {
             // ลบการเลือกทุก slot ในห้องที่เลือกอยู่
             document.querySelectorAll('.time-slot-availability.selected').forEach(slot => {
@@ -1428,18 +1423,15 @@ $userData = getUserData();
             document.querySelectorAll('.room-card.selected-room').forEach(card => {
                 card.classList.remove('selected-room');
             });
-            
-            // รีเซ็ตตัวแปร
+
             selectedRoom = null;
             selectedTimeSlots = [];
-            
-            // อัปเดตฟอร์ม
+
             updateFormValues();
         }
 
         // ฟังก์ชันลบ slot จากการเลือก
         function removeSlotFromSelection(timeSlotId, slotElement) {
-            // ลบจากอาเรย์
             const index = selectedTimeSlots.indexOf(timeSlotId);
             if (index > -1) {
                 selectedTimeSlots.splice(index, 1);
@@ -1452,8 +1444,7 @@ $userData = getUserData();
             if (selectedTimeSlots.length === 0) {
                 selectedRoom = null;
             }
-            
-            // อัปเดตฟอร์ม
+
             updateFormValues();
         }
         
@@ -1461,7 +1452,6 @@ $userData = getUserData();
         function updateSlotRangeDisplay() {
             if (selectedTimeSlots.length === 0) return;
             
-            // หา slots ที่เป็นช่วงติดต่อกัน
             const ranges = findConsecutiveRanges(selectedTimeSlots);
             
             // อัปเดตการแสดงผลแต่ละ slot
@@ -1479,7 +1469,6 @@ $userData = getUserData();
             });
         }
         
-        // ฟังก์ชันหาช่วงติดต่อกัน
         function findConsecutiveRanges(slots) {
             if (slots.length === 0) return [];
             
@@ -1532,7 +1521,7 @@ $userData = getUserData();
             document.getElementById('makeup_end_time_slot_id').value = sortedSlots[sortedSlots.length - 1];
         }
         
-        // ฟังก์ชันอัปเดตสรุปการเลือก - ปรับปรุงให้แสดงช่วงเวลา
+        // ฟังก์ชันอัปเดตสรุปการเลือก
         function updateSelectionSummary() {
             const summaryCard = document.getElementById('selectionSummary');
             const summaryContent = document.getElementById('summaryContent');
@@ -1542,7 +1531,6 @@ $userData = getUserData();
                 return;
             }
             
-            // หาข้อมูลห้องที่เลือกจากข้อมูลที่โหลดมา
             let roomNumber = `ห้อง ${selectedRoom}`;
             
             // ค้นหาข้อมูลห้องจาก classroomsData
@@ -1566,8 +1554,7 @@ $userData = getUserData();
             // หาเวลาจริงจาก time slots ที่เลือก
             const sortedSlots = [...selectedTimeSlots].sort((a, b) => a - b);
             let actualTimeText = timeRangesText;
-            
-            // ถ้ามีข้อมูล timeSlotsData ให้แสดงเวลาจริง
+
             if (timeSlotsData && timeSlotsData.length > 0) {
                 const startTimeData = timeSlotsData.find(t => t.time_slot_id == sortedSlots[0]);
                 const endTimeData = timeSlotsData.find(t => t.time_slot_id == sortedSlots[sortedSlots.length - 1]);
@@ -1625,8 +1612,6 @@ $userData = getUserData();
                 
                 if (result.success) {
                     showSuccess('จัดตารางสอนชดเชยเสร็จสิ้น\n\n' + (result.message || ''));
-                    
-                    // กลับไปหน้าเดิมหลังจาก 3 วินาที
                     setTimeout(() => {
                         goBackAfterSuccess();
                     }, 3000);

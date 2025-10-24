@@ -413,69 +413,6 @@ $userData = $_SESSION;
                         </div>
                     </div>
 
-                    <!-- <div class="row">
-                         วันหยุดราชการ 
-                        <div class="col-md-6">
-                            <div class="card holiday-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5>
-                                    <i class="fas fa-flag"></i> 
-                                    วันหยุดราชการ ปีการศึกษา <?php echo $academic_year; ?> เทอม <?php echo $semester; ?>
-                                </h5>
-                                <span class="holiday-badge" id="holidayBadge">- วัน</span>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        ช่วงวันที่: <?php echo format_thai_date($start_date); ?> - <?php echo format_thai_date($end_date); ?>
-                                    </small>
-                                </div>
-                                <div class="mb-3">
-                                    <input type="text" id="holidaySearch" class="form-control form-control-sm" 
-                                           placeholder="ค้นหาวันหยุด..." onkeyup="filterHolidays(this.value)">
-                                </div>
-                                    <div class="table-responsive" style="max-height: 450px;">
-                                        <table class="table table-sm table-hover">
-                                            <thead class="table-light sticky-top">
-                                                <tr>
-                                                    <th width="25%">วันที่</th>
-                                                    <th width="50%">ชื่อวันหยุด</th>
-                                                    <th width="25%">ประเภท</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="holidaysTableBody">
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted py-3">
-                                                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div><br>
-                                                        กำลังโหลดข้อมูล...
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
-
-                        <!-- ตารางสอน -->
-                        <!-- <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5><i class="fas fa-calendar-week"></i> ตารางสอน</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div style="max-height: 400px; overflow-y: auto;" id="teachingSchedulesContainer">
-                                        <div class="text-center text-muted py-3">
-                                            <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div><br>
-                                            กำลังโหลดข้อมูล...
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> 
-                    </div>-->
-
                     <!-- บันทึกการเรียนการสอน -->
                     <div class="row mt-4">
                         <div class="col-12">
@@ -695,7 +632,7 @@ $userData = $_SESSION;
                             <i class="fas fa-info-circle"></i>
                             <strong>หมายเหตุ:</strong> 
                             <ul class="mb-0 mt-2">
-                                <li>การยกเลิกจะลบ Class Session ออกจากระบบ</li>
+                                <li>การยกเลิกจะลบปฏิทินการศึกษาออกจากระบบ</li>
                                 <li>หากเลือก "ต้องการสอนชดเชย" ระบบจะสร้างรายการในหน้า "จัดการการชดเชย"</li>
                                 <li>สามารถกำหนดวันที่และเวลาสอนชดเชยได้ภายหลัง</li>
                             </ul>
@@ -880,7 +817,7 @@ function updateAPIStatus(status, message) {
 }
 
 // ========================================
-// ฟังก์ชันเรียก API ที่ปรับปรุงแล้ว
+// ฟังก์ชันเรียก API
 // ========================================
 
 async function callAPI(apiPath, action, params = {}) {
@@ -1700,7 +1637,7 @@ async function updateGoogleCalendarStats() {
     }
 }
 
-// ปรับปรุงฟังก์ชัน updateStats เพื่อรวม Google Calendar
+//updateStats Google Calendar
 async function updateStats() {
     try {
         // ตรวจสอบค่าที่จำเป็น
@@ -2299,7 +2236,7 @@ window.dashboardAPI = {
 // ฟังก์ชันจัดการ สร้างปฏิทินการสอน
 // ========================================
 
-// ฟังก์ชันแก้ไข Class Session
+// ฟังก์ชันแก้ไข ปฏิทินการศึกษา
 async function editSession(sessionId) {
     try {
         showLoading();

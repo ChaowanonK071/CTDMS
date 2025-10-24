@@ -112,14 +112,14 @@ $userData = getUserData();
                                 <div class="card-body">
                                     <!-- Search & Filter Controls -->
                                     <div class="row mb-3">
-                                        <!-- <div class="col-md-4 mb-2">
+                                        <div class="col-md-4 mb-2">
                                             <select id="limitSelect" class="form-select form-select-sm d-inline-block w-auto me-2">
                                                 <option value="5">5</option>
                                                 <option value="10" selected>10</option>
                                                 <option value="20">20</option>
                                                 <option value="50">50</option>
                                             </select>
-                                        </div> -->
+                                        </div>
                                         <div class="col-md-4 mb-2">
                                             <div class="input-group">
                                                 <input type="text" id="searchInput" class="form-control" placeholder="ค้นหา...">

@@ -181,7 +181,7 @@ function getAcademicYears() {
         jsonSuccess('ดึงรายการปีการศึกษาสำเร็จ', $academic_years);
         
     } catch (Exception $e) {
-        error_log("❌ Error getting academic years: " . $e->getMessage());
+        error_log(" Error getting academic years: " . $e->getMessage());
         jsonError($e->getMessage());
     }
 }
@@ -275,7 +275,7 @@ function addAcademicYear() {
         ]);
         
     } catch (Exception $e) {
-        error_log("❌ Error adding academic year: " . $e->getMessage());
+        error_log(" Error adding academic year: " . $e->getMessage());
         jsonError($e->getMessage());
     }
 }
@@ -339,7 +339,7 @@ function updateAcademicYear() {
         ]);
         
     } catch (Exception $e) {
-        error_log("❌ Error updating academic year: " . $e->getMessage());
+        error_log(" Error updating academic year: " . $e->getMessage());
         jsonError($e->getMessage());
     }
 }
@@ -403,7 +403,7 @@ function deleteAcademicYear() {
         ]);
         
     } catch (Exception $e) {
-        error_log("❌ Error deleting academic year: " . $e->getMessage());
+        error_log(" Error deleting academic year: " . $e->getMessage());
         jsonError($e->getMessage());
     }
 }
@@ -467,7 +467,7 @@ function setCurrentAcademicYear() {
             $conn->rollback();
             $conn->close();
         }
-        error_log("❌ Error setting current academic year: " . $e->getMessage());
+        error_log(" Error setting current academic year: " . $e->getMessage());
         jsonError($e->getMessage());
     }
 }

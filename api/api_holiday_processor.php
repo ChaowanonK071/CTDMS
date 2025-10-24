@@ -621,10 +621,7 @@ function fetchHolidaysFromCalendarific($year, $country = 'TH', $api_key = null) 
 }
 
 /**
- * สร้าง Class Sessions อัตโนมัติตามตารางสอนและวันหยุด (ปรับปรุงแล้ว)
- * รองรับการสร้าง compensation_logs สำหรับรายวิชาที่ตรงกับวันหยุด
- * รองรับสิทธิ์ admin (สร้างทุกคน) และ teacher (สร้างตัวเอง)
- * รองรับการส่งไป Google Calendar อัตโนมัติ
+ * สร้าง Class Sessions อัตโนมัติตามตารางสอนและวันหยุด
  */
 function generateClassSessions() {
     global $user_id;
@@ -634,7 +631,7 @@ function generateClassSessions() {
         $academic_year_id = $_POST['academic_year_id'] ?? null;
         $date_from = $_POST['date_from'] ?? null;
         $date_to = $_POST['date_to'] ?? null;
-        $send_to_google = $_POST['send_to_google'] ?? false; // เพิ่มตัวเลือกส่งไป Google Calendar
+        $send_to_google = $_POST['send_to_google'] ?? false; // ส่งไป Google Calendar
         
         if (!$academic_year_id || !is_numeric($academic_year_id)) {
             processorJsonError('กรุณาระบุปีการศึกษาที่ถูกต้อง');
@@ -669,9 +666,9 @@ function generateClassSessions() {
         $user_type = $user_data['user_type'];
         $is_admin = ($user_type === 'admin');
         
-        $conn->begin_transaction(); // เริ่ม transaction
+        $conn->begin_transaction();
         
-        // ดึงข้อมูลตารางสอน - ตามสิทธิ์ผู้ใช้
+        // ดึงข้อมูลตารางสอน - ตามสิทธิ์
         if ($is_admin) {
             $schedule_sql = "SELECT 
                                 ts.*,
@@ -732,7 +729,7 @@ function generateClassSessions() {
             throw new Exception($is_admin ? 'ไม่พบตารางสอนในระบบ' : 'ไม่พบตารางสอนของคุณ');
         }
         
-        // ดึงข้อมูล Google Auth ของ users ที่มีตารางสอน (ถ้าต้องการส่งไป Google Calendar)
+        // ดึงข้อมูล Google Auth ของ users ที่มีตารางสอ
         $google_auth_data = [];
         if ($send_to_google) {
             $unique_user_ids = array_unique(array_column($schedules, 'user_id'));
@@ -841,9 +838,6 @@ function generateClassSessions() {
                     $check_stmt->close();
                     
                     if ($is_holiday) {
-                        // วันนี้เป็นวันหยุด - สร้าง compensation log
-                        
-                        // ตรวจสอบว่ามี compensation log แล้วหรือไม่
                         $check_compensation_sql = "SELECT cancellation_id FROM compensation_logs 
                                                   WHERE schedule_id = ? AND cancellation_date = ?";
                         $check_comp_stmt = $conn->prepare($check_compensation_sql);
@@ -854,7 +848,6 @@ function generateClassSessions() {
                             $check_comp_stmt->close();
                             
                             if (!$existing_compensation) {
-                                // สร้าง compensation log ใหม่
                                 $reason =  $holiday_info['holiday_name'];
                                 
                                 $insert_compensation_sql = "INSERT INTO compensation_logs 
@@ -883,16 +876,15 @@ function generateClassSessions() {
                                             'reason' => $reason
                                         ];
                                         
-                                        error_log("✅ Created compensation log for {$schedule['subject_code']} on {$date_string} (Teacher: {$teachers_processed[$schedule_teacher_id]['name']})");
+                                        error_log("Created compensation log for {$schedule['subject_code']} on {$date_string} (Teacher: {$teachers_processed[$schedule_teacher_id]['name']})");
                                     } else {
-                                        error_log("❌ Failed to create compensation log: " . $comp_stmt->error);
+                                        error_log("Failed to create compensation log: " . $comp_stmt->error);
                                     }
                                     $comp_stmt->close();
                                 }
                             }
                         }
                         
-                        // ลบ class session ที่มีอยู่ (ถ้ามี) เพราะวันนี้เป็นวันหยุด
                         if ($existing_session) {
                             $delete_sql = "DELETE FROM class_sessions WHERE session_id = ?";
                             $delete_stmt = $conn->prepare($delete_sql);
@@ -930,7 +922,7 @@ function generateClassSessions() {
                                     $teachers_processed[$schedule_teacher_id]['sessions_created']++;
                                     $new_session_id = $conn->insert_id;
                                     
-                                    // ส่งไป Google Calendar (ถ้าเปิดใช้งาน)
+                                    // ส่งไป Google Calendar
                                     if ($send_to_google && isset($google_auth_data[$schedule_teacher_id])) {
                                         $google_result = sendSessionToGoogleCalendar(
                                             $schedule_teacher_id,
@@ -975,12 +967,12 @@ function generateClassSessions() {
             $current_date->add(new DateInterval('P1D'));
         }
         
-        $conn->commit(); // Commit transaction
+        $conn->commit(); 
         $conn->close();
         
         // สร้างข้อความสรุปผลลัพธ์
         $summary_message = "สร้าง Class Sessions เสร็จสิ้น!\n\n";
-        $summary_message .= "📊 สรุปผลลัพธ์:\n";
+        $summary_message .= "สรุปผลลัพธ์:\n";
         
         if ($is_admin) {
             $summary_message .= "• สิทธิ์: ผู้ดูแลระบบ (สร้างทุกคน)\n";
@@ -996,7 +988,7 @@ function generateClassSessions() {
         
         // เพิ่มข้อมูล Google Calendar
         if ($send_to_google) {
-            $summary_message .= "\n📅 Google Calendar Integration:\n";
+            $summary_message .= "\nGoogle Calendar Integration:\n";
             $summary_message .= "• ส่งไป Google Calendar สำเร็จ: {$google_calendar_results['sent_count']} รายการ\n";
             $summary_message .= "• ส่งไป Google Calendar ล้มเหลว: {$google_calendar_results['failed_count']} รายการ\n";
             $summary_message .= "• อาจารย์ที่ไม่มี Google Auth: " . count($google_calendar_results['no_auth_users']) . " คน\n";
@@ -1009,7 +1001,7 @@ function generateClassSessions() {
             }
             
             if (!empty($google_calendar_results['errors'])) {
-                $summary_message .= "\n❌ ข้อผิดพลาด Google Calendar:\n";
+                $summary_message .= "\nข้อผิดพลาด Google Calendar:\n";
                 foreach (array_slice($google_calendar_results['errors'], 0, 5) as $error) {
                     $summary_message .= "• {$error['teacher']} - {$error['subject']} ({$error['date']}): {$error['error']}\n";
                 }
@@ -1020,18 +1012,18 @@ function generateClassSessions() {
         }
         
         if ($is_admin && count($teachers_processed) > 0) {
-            $summary_message .= "\n👥 รายละเอียดตามอาจารย์:\n";
+            $summary_message .= "\nรายละเอียดตามอาจารย์:\n";
             foreach ($teachers_processed as $teacher_id => $info) {
                 $google_info = '';
                 if ($send_to_google) {
-                    $google_info = " (📅 Google: {$info['google_calendar_sent']} ส่งสำเร็จ, {$info['google_calendar_failed']} ล้มเหลว)";
+                    $google_info = " (Google: {$info['google_calendar_sent']} ส่งสำเร็จ, {$info['google_calendar_failed']} ล้มเหลว)";
                 }
                 $summary_message .= "• {$info['name']}: {$info['sessions_created']} sessions, {$info['compensations']} compensations{$google_info}\n";
             }
         }
         
         if ($compensation_created > 0) {
-            $summary_message .= "\n🔄 รายการที่ต้องชดเชย:\n";
+            $summary_message .= "\nรายการที่ต้องชดเชย:\n";
             foreach ($compensation_details as $comp) {
                 if ($is_admin) {
                     $summary_message .= "• {$comp['teacher_name']} - {$comp['subject_code']} วันที่ " . 
@@ -1043,7 +1035,7 @@ function generateClassSessions() {
                         " ({$comp['holiday_name']})\n";
                 }
             }
-            $summary_message .= "\n💡 กรุณาไปที่หน้า 'จัดการการชดเชย' เพื่อกำหนดวันที่ชดเชย";
+            $summary_message .= "\nกรุณาไปที่หน้า 'จัดการการชดเชย' เพื่อกำหนดวันที่ชดเชย";
         }
         
         processorJsonSuccess($summary_message, [
@@ -1064,7 +1056,6 @@ function generateClassSessions() {
         ]);
         
     } catch (Exception $e) {
-        // Rollback transaction on error
         if (isset($conn)) {
             $conn->rollback();
         }
@@ -1089,7 +1080,7 @@ function sendSessionToGoogleCalendar($teacher_id, $google_auth, $schedule, $sess
                 $refresh_result = refreshGoogleTokenForUser($teacher_id, $google_auth['google_refresh_token'], $conn);
                 if ($refresh_result['success']) {
                     $access_token = $refresh_result['access_token'];
-                    error_log("✅ Refreshed token for teacher {$teacher_id}");
+                    error_log("Refreshed token for teacher {$teacher_id}");
                 } else {
                     return [
                         'success' => false,
@@ -1209,7 +1200,7 @@ function sendSessionToGoogleCalendar($teacher_id, $google_auth, $schedule, $sess
         $update_stmt->execute();
         $update_stmt->close();
         
-        error_log("✅ Sent to Google Calendar: {$schedule['subject_code']} on {$session_date} for teacher {$teacher_id}");
+        error_log("Sent to Google Calendar: {$schedule['subject_code']} on {$session_date} for teacher {$teacher_id}");
         
         return [
             'success' => true,
@@ -1218,7 +1209,7 @@ function sendSessionToGoogleCalendar($teacher_id, $google_auth, $schedule, $sess
         ];
         
     } catch (Exception $e) {
-        error_log("❌ Error sending to Google Calendar for teacher {$teacher_id}: " . $e->getMessage());
+        error_log("Error sending to Google Calendar for teacher {$teacher_id}: " . $e->getMessage());
         
         // อัปเดต Class Session ด้วยข้อผิดพลาด
         try {

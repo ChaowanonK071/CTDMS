@@ -42,7 +42,7 @@ $userData = getUserData();
         .btn-action {
             margin-right: 5px;
         }
-        /* เพิ่ม CSS เพื่อให้ปุ่มอยู่บรรทัดเดียวกัน */
+
         .action-buttons {
             display: flex;
             gap: 5px;
@@ -460,7 +460,7 @@ function saveYearLevel() {
         dataType: "json",
         contentType: "application/json",
         data: JSON.stringify(data),
-        timeout: 10000, // เพิ่ม timeout
+        timeout: 10000,
         beforeSend: function(xhr) {
             console.log("=== Before Send ===");
             console.log("XHR object:", xhr);

@@ -812,7 +812,7 @@ function getHolidayTypeBadge(type) {
 }
 
 // ========================================
-// ฟังก์ชันเรียก API (ปรับปรุงแล้ว)
+// ฟังก์ชันเรียก API
 // ========================================
 
 async function callAPI(url, params = {}, retryCount = 0) {
@@ -1153,7 +1153,7 @@ async function deleteAcademicYear(academicYearId) {
 }
 
 // ========================================
-// ฟังก์ชันจัดการวันหยุด (ปรับปรุงแล้ว)
+// ฟังก์ชันจัดการวันหยุด
 // ========================================
 
 async function loadAllHolidays(academicYearId = null) {
@@ -1196,7 +1196,7 @@ async function loadAllHolidays(academicYearId = null) {
     }
 }
 
-// ฟังก์ชันลบวันหยุดจากตาราง (เพิ่มฟังก์ชันนี้)
+// ฟังก์ชันลบวันหยุดจากตาราง
 async function deleteHolidayFromTable(holidayId) {
     const holiday = allHolidays.find(h => h.holiday_id == holidayId);
     if (!holiday) {
@@ -1281,7 +1281,7 @@ async function deleteHolidayFromTable(holidayId) {
     }
 }
 
-// ฟังก์ชันลบปีการศึกษาจากรายการ (เพิ่มฟังก์ชันนี้)
+// ฟังก์ชันลบปีการศึกษาจากรายการ
 async function deleteAcademicYearFromList(academicYearId) {
     const year = academicYears.find(y => y.academic_year_id == academicYearId);
     if (!year) {

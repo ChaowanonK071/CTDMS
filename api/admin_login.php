@@ -210,9 +210,9 @@ function authenticateAdmin($username, $password) {
         if (!$user) {
             $message = 'ไม่พบผู้ใช้ในระบบ';
             if ($adminCreation['created']) {
-                $message = "ไม่พบผู้ใช้ '$username' ในระบบ\n\n✅ ระบบได้สร้าง Admin User เริ่มต้นแล้ว:\n";
-                $message .= "🔐 Username: {$adminCreation['username']}\n";
-                $message .= "🔑 Password: {$adminCreation['password']}\n\n";
+                $message = "ไม่พบผู้ใช้ '$username' ในระบบ\n\nระบบได้สร้าง Admin User เริ่มต้นแล้ว:\n";
+                $message .= "Username: {$adminCreation['username']}\n";
+                $message .= "Password: {$adminCreation['password']}\n\n";
                 $message .= "กรุณาใช้ข้อมูลด้านบนในการเข้าสู่ระบบ";
             }
             return [
@@ -271,9 +271,9 @@ function authenticateAdmin($username, $password) {
                 
                 // ถ้ามีการสร้าง admin ใหม่ ให้แสดงข้อมูล
                 if ($adminCreation['created']) {
-                    $message .= "\n\n✅ ระบบได้สร้าง/รีเซ็ต Admin User แล้ว:\n";
-                    $message .= "🔐 Username: {$adminCreation['username']}\n";
-                    $message .= "🔑 Password: {$adminCreation['password']}\n\n";
+                    $message .= "\n\nระบบได้สร้าง/รีเซ็ต Admin User แล้ว:\n";
+                    $message .= "Username: {$adminCreation['username']}\n";
+                    $message .= "Password: {$adminCreation['password']}\n\n";
                     $message .= "กรุณาใช้ข้อมูลด้านบนในการเข้าสู่ระบบ";
                 } else {
                     $message .= "\n\n🔧 กรุณาลองคลิก 'แก้ไขปัญหาและสร้าง Admin' เพื่อรีเซ็ตรหัสผ่าน";
@@ -411,7 +411,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rateLimitFile = sys_get_temp_dir() . '/admin_login_attempts.log';
     $currentTime = time();
     $maxAttempts = 5;
-    $timeWindow = 300; // 5 นาที
+    $timeWindow = 300;
     
     // อ่านความพยายามล่าสุด
     $attempts = [];
@@ -464,7 +464,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // เขียนกลับไฟล์ (ลบ attempts ที่เก่าออกด้วย)
         file_put_contents($rateLimitFile, implode("\n", $cleanedAttempts));
         
         $response = [
@@ -473,7 +472,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'user_data' => $authResult['user_data']
         ];
         
-        // เพิ่มข้อมูลการสร้าง admin ถ้ามี
         if ($authResult['admin_created']) {
             $response['admin_created'] = true;
             $response['message'] .= ' (ระบบได้สร้าง Admin User เริ่มต้นอัตโนมัติ)';
@@ -495,7 +493,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message' => $authResult['message']
         ];
         
-        // เพิ่มข้อมูลการสร้าง admin ถ้ามี
         if (isset($authResult['admin_created']) && $authResult['admin_created']) {
             $response['admin_created'] = true;
         }

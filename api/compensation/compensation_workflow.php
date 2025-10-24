@@ -91,15 +91,14 @@ function approveCompensationSchedule() {
             throw new Exception('ไม่สามารถเตรียม SQL statement สำหรับอัปเดต: ' . $mysqli->error);
         }
         
-        // แก้ไข bind_param ให้ตรงกับจำนวน parameters (7 ตัว)
         $stmt->bind_param("siiiisi", 
-            $compensation['proposed_makeup_date'],           // s
-            $compensation['proposed_makeup_classroom_id'],   // i
-            $compensation['proposed_makeup_start_time_slot_id'], // i
-            $compensation['proposed_makeup_end_time_slot_id'],   // i
-            $user_id,                                       // i
-            $approval_notes,                                // s
-            $cancellation_id                                // i
+            $compensation['proposed_makeup_date'],           
+            $compensation['proposed_makeup_classroom_id'],   
+            $compensation['proposed_makeup_start_time_slot_id'], 
+            $compensation['proposed_makeup_end_time_slot_id'],   
+            $user_id,                                       
+            $approval_notes,                               
+            $cancellation_id                                
         );
         
         if (!$stmt->execute()) {

@@ -1050,7 +1050,7 @@ function validateCoTeachers() {
     return { valid: true };
 }
 
-// ปรับปรุงฟังก์ชัน selectSubject
+//selectSubject
 function selectSubject(subject) {
     $("#subject_search").val(`${subject.subject_code} - ${subject.subject_name} (${subject.subject_type})`);
     $("#subject_id").val(subject.subject_id);
@@ -1327,7 +1327,6 @@ function loadTimeSlots() {
 
                 createScheduleGrid();
 
-                // ปรับ dropdown ให้แสดง slot_number และ start_time
                 let optionsStart = '<option value="">-- เลือกคาบเริ่มต้น --</option>';
                 let optionsEnd = '<option value="">-- เลือกคาบสิ้นสุด --</option>';
                 timeSlotsData.forEach(function(timeSlot) {
@@ -1626,7 +1625,7 @@ function renderSchedule() {
 }
 
 
-// ปรับปรุงฟังก์ชัน editSchedule เพื่อรองรับอาจารย์ร่วม
+//editSchedule เพื่อรองรับอาจารย์ร่วม
 function editSchedule(scheduleId) {
     const schedule = scheduleData.find(s => s.schedule_id == scheduleId);
     

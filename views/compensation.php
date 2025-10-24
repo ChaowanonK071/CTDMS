@@ -2553,7 +2553,6 @@ function formatThaiDateTime(dateTimeString) {
 
 // ===== ฟังก์ชันรีเฟรชอัตโนมัติ =====
 function startAutoRefresh() {
-    // รีเฟรชทุก 30 วินาที
     refreshInterval = setInterval(() => {
         loadCompensations();
     }, 30000);
@@ -2576,9 +2575,9 @@ function highlightPendingApprovals() {
 
 // ===== การเริ่มต้นระบบ =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Compensation Management System with Teacher Filter Initialized');
-    console.log('📅 Academic Year ID:', ACADEMIC_YEAR_ID);
-    console.log('🔗 API Path:', COMPENSATION_API_PATH);
+    console.log('Compensation Management System with Teacher Filter Initialized');
+    console.log('Academic Year ID:', ACADEMIC_YEAR_ID);
+    console.log('API Path:', COMPENSATION_API_PATH);
     
     // เปิดใช้งาน tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

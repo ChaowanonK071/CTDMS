@@ -33,7 +33,6 @@ register_shutdown_function(function () {
     }
 });
 
-// เพิ่มไฟล์ที่จำเป็น
 require_once '../config/database.php';
 require_once 'compensation/compensation_functions.php';
 require_once 'compensation/compensation_workflow.php';

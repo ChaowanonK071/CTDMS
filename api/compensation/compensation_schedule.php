@@ -59,7 +59,6 @@ function previewAutoScheduleSingle() {
             jsonError('ไม่พบข้อมูลการชดเชยหรือรายการนี้ไม่อยู่ในสถานะ "รอดำเนินการ"');
         }
 
-        // เพิ่มข้อมูล year_levels_in_group สำหรับโมดูล
         if ($compensation['is_module_subject'] == 1 && !empty($compensation['group_id'])) {
             $compensation['year_levels_in_group'] = [];
             $stmt_yl = $mysqli->prepare("SELECT yl.department, yl.class_year, yl.curriculum
@@ -340,7 +339,6 @@ function confirmAutoScheduleSingle() {
             throw new Exception('ไม่พบข้อมูลการชดเชยหรือรายการนี้ไม่อยู่ในสถานะ "รอดำเนินการ"');
         }
 
-        // เพิ่มข้อมูล year_levels_in_group สำหรับโมดูล
         if ($compensation['is_module_subject'] == 1 && !empty($compensation['group_id'])) {
             $compensation['year_levels_in_group'] = [];
             $stmt_yl = $mysqli->prepare("SELECT yl.department, yl.class_year, yl.curriculum
@@ -506,7 +504,6 @@ function confirmManualSchedule() {
             throw new Exception('ไม่พบข้อมูลการชดเชยหรือรายการนี้ไม่อยู่ในสถานะ "รอดำเนินการ"');
         }
 
-        // เพิ่มข้อมูล year_levels_in_group สำหรับโมดูล
         if ($compensation['is_module_subject'] == 1 && !empty($compensation['group_id'])) {
             $compensation['year_levels_in_group'] = [];
             $stmt_yl = $mysqli->prepare("SELECT yl.department, yl.class_year, yl.curriculum
@@ -1546,14 +1543,13 @@ function createCompensationClassSession($mysqli, $compensation, $suitable_schedu
                 ];
             }
             
-            // แก้ไข bind_param - 6 parameters: i, s, i, i, i, i
             $stmt->bind_param("isiiii", 
-                $compensation['schedule_id'],        // i
-                $suitable_schedule['date'],          // s
-                $suitable_schedule['classroom_id'],  // i
-                $suitable_schedule['start_slot_id'], // i
-                $suitable_schedule['end_slot_id'],   // i
-                $user_id                            // i
+                $compensation['schedule_id'],        
+                $suitable_schedule['date'],          
+                $suitable_schedule['classroom_id'],  
+                $suitable_schedule['start_slot_id'], 
+                $suitable_schedule['end_slot_id'],   
+                $user_id                            
             );
             
             if ($stmt->execute()) {
