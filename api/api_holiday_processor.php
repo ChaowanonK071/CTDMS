@@ -1,8 +1,6 @@
 <?php
 /**
- * API สำหรับประมวลผลวันหยุดจาก Calendarific API - Updated Version
- * ไฟล์: /api/api_holiday_processor.php
- * เวอร์ชัน: 2.3 - แก้ไข HTTP 500 Error
+ * API สำหรับประมวลผลวันหยุดจาก Calendarific API
  */
 
 // ตั้งค่า Error Reporting และ Output Buffer

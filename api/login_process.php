@@ -1,6 +1,5 @@
 <?php
 /**
- * login_process.php - จัดการการล็อกอินจากหน้า frontend
  * รองรับทั้ง eLogin และ Admin login
  */
 

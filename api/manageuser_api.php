@@ -1,12 +1,7 @@
 <?php
-/**
- * API สำหรับระบบจัดการผู้ใช้ (Debug Fixed Version)
- * แก้ไขปัญหา JSON response และ error handling
- */
-
 // ป้องกัน HTML error output ที่ทำให้ JSON invalid
 error_reporting(E_ALL);
-ini_set('display_errors', 0);  // ปิด display_errors เพื่อป้องกัน HTML error
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 // เริ่ม output buffering เพื่อจับ error ที่อาจหลุดออกมา

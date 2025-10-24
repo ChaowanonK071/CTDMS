@@ -1,6 +1,5 @@
 <?php
 /**
- * logout.php - API สำหรับออกจากระบบ
  * รองรับทั้ง eLogin และ Admin logout
  */
 

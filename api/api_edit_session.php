@@ -1,7 +1,6 @@
 <?php
 /**
  * API สำหรับแก้ไขและยกเลิก Class Session
- * ไฟล์: /api/api_edit_session.php
  */
 
 // ล้าง output buffer และตั้งค่า headers

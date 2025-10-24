@@ -1,23 +1,20 @@
 <?php
 /**
  * การตั้งค่าฐานข้อมูลสำหรับระบบจัดการตารางสอน
- * ไฟล์นี้ใช้สำหรับกำหนดค่าการเชื่อมต่อฐานข้อมูลในทุกไฟล์ API
- * ปรับปรุง: แยก Google Calendar Integration ออกเป็นไฟล์แยก
  */
 
-// ===== การตั้งค่า Error Reporting สำหรับ Debug =====
+//การตั้งค่า Error Reporting สำหรับ Debug
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // ปิดการแสดง error บนหน้าเว็บ
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 ini_set('display_errors', 1);
-// สร้างโฟลเดอร์ logs ถ้ายังไม่มี
 if (!file_exists(__DIR__ . '/../logs')) {
     mkdir(__DIR__ . '/../logs', 0755, true);
 }
 
-// ===== การตั้งค่าฐานข้อมูล =====
+//การตั้งค่าฐานข้อมูล
 if (!defined('DB_HOST')) {
     define('DB_HOST', 'localhost');
     define('DB_USERNAME', 'root');
@@ -30,13 +27,13 @@ if (!defined('DB_HOST')) {
     define('DB_PASS', DB_PASSWORD);
 }
 
-// ===== การตั้งค่า Calendarific API =====
+//การตั้งค่า Calendarific API
 if (!defined('CALENDARIFIC_API_KEY')) {
     define('CALENDARIFIC_API_KEY', 'I793hRTnfucCdWP5OOgKWgNCDfT0wdCH');
     define('CALENDARIFIC_BASE_URL', 'https://calendarific.com/api/v2/holidays');
 }
 
-// ===== การตั้งค่าระบบ =====
+//การตั้งค่าระบบ
 date_default_timezone_set('Asia/Bangkok');
 mb_internal_encoding('UTF-8');
 
@@ -45,7 +42,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
-// ===== ฟังก์ชันการเชื่อมต่อฐานข้อมูล =====
+//ฟังก์ชันการเชื่อมต่อฐานข้อมูล
 
 if (!function_exists('connectDB')) {
     function connectDB() {
@@ -108,7 +105,7 @@ if (!function_exists('getDBConnection')) {
     }
 }
 
-// ===== ฟังก์ชันวันที่และเวลาภาษาไทย =====
+//ฟังก์ชันวันที่และเวลาภาษาไทย
 
 if (!function_exists('getDayNumber')) {
     function getDayNumber($thaiDay) {
@@ -189,7 +186,7 @@ if (!function_exists('formatFullThaiDate')) {
     }
 }
 
-// ===== ฟังก์ชัน Session Management =====
+//ฟังก์ชัน Session Management
 
 if (!function_exists('startSession')) {
     function startSession() {
@@ -237,7 +234,7 @@ if (!function_exists('getCurrentAcademicYear')) {
     }
 }
 
-// ===== ฟังก์ชัน JSON Response =====
+//ฟังก์ชัน JSON Response
 
 if (!function_exists('jsonResponse')) {
     function jsonResponse($success, $message = '', $data = null) {
@@ -264,7 +261,7 @@ if (!function_exists('jsonSuccess')) {
     }
 }
 
-// ===== ฟังก์ชัน cURL สำหรับการเรียก API =====
+//ฟังก์ชัน cURL สำหรับการเรียก API
 
 if (!function_exists('callAPIWithCurl')) {
     function callAPIWithCurl($url, $options = []) {
@@ -355,7 +352,7 @@ if (!function_exists('callAPIWithCurl')) {
     }
 }
 
-// ===== ฟังก์ชันแปลวันหยุดเป็นภาษาไทย =====
+//ฟังก์ชันแปลวันหยุดเป็นภาษาไทย
 
 if (!function_exists('translateHolidayToThai')) {
     function translateHolidayToThai($english_name) {
@@ -563,7 +560,7 @@ if (!function_exists('translateHolidayToThai')) {
     }
 }
 
-// ===== ฟังก์ชันพิเศษ ตรวจจับรูปแบบ =====
+//ฟังก์ชันพิเศษ ตรวจจับรูปแบบ
 if (!function_exists('translateSpecialPatterns')) {
     function translateSpecialPatterns($englishName) {
         $name = trim($englishName);
@@ -615,7 +612,7 @@ if (!function_exists('translateSpecialPatterns')) {
     }
 }
 
-// ===== ฟังก์ชันจำแนกประเภทวันหยุด =====
+//ฟังก์ชันจำแนกประเภทวันหยุด
 if (!function_exists('determineDetailedHolidayType')) {
     function determineDetailedHolidayType($english_name, $original_type = '') {
         $name_lower = strtolower($english_name);
@@ -635,7 +632,7 @@ if (!function_exists('determineDetailedHolidayType')) {
     }
 }
 
-// ===== แปลประเภทวันหยุดเป็นไทย =====
+//แปลประเภทวันหยุดเป็นไทย
 if (!function_exists('translateHolidayType')) {
     function translateHolidayType($type) {
         $typeTranslations = [
@@ -651,7 +648,7 @@ if (!function_exists('translateHolidayType')) {
     }
 }
 
-// ===== ฟังก์ชันหลักสำหรับเรียก Calendarific API =====
+//ฟังก์ชันหลักสำหรับเรียก Calendarific API
 
 if (!function_exists('callCalendarificAPI')) {
     function callCalendarificAPI($country = 'TH', $year = null) {
@@ -749,7 +746,7 @@ if (!function_exists('callCalendarificAPI')) {
     }
 }
 
-// ===== ฟังก์ชันช่วยเหลือฐานข้อมูล =====
+//ฟังก์ชันช่วยเหลือฐานข้อมูล
 
 if (!function_exists('executeQuery')) {
     function executeQuery($sql, $params = []) {
@@ -810,7 +807,7 @@ if (!function_exists('deleteRecord')) {
     }
 }
 
-// ===== ฟังก์ชันช่วยเหลือทั่วไป =====
+//ฟังก์ชันช่วยเหลือทั่วไป
 
 if (!function_exists('logDebug')) {
     function logDebug($message, $data = null) {
@@ -847,7 +844,7 @@ if (!function_exists('validateRequired')) {
     }
 }
 
-// ===== ฟังก์ชันเพิ่มเติม =====
+//ฟังก์ชันเพิ่มเติม
 
 if (!function_exists('getTranslationQuality')) {
     function getTranslationQuality($originalName, $translatedName) {
@@ -914,7 +911,7 @@ if (!function_exists('determineHolidayTypeFromCalendarific')) {
     }
 }
 
-// ===== Google Calendar Integration Helper =====
+//Google Calendar Integration Helper
 
 if (!function_exists('loadGoogleCalendarIntegration')) {
     function loadGoogleCalendarIntegration() {
@@ -929,7 +926,7 @@ if (!function_exists('loadGoogleCalendarIntegration')) {
     }
 }
 
-// ===== Compatibility Aliases =====
+//Compatibility Aliases
 
 if (!function_exists('connectDatabase')) {
     function connectDatabase() {
@@ -949,7 +946,7 @@ if (!function_exists('getMySQLiConnection')) {
     }
 }
 
-// ===== เริ่ม Session อัตโนมัติ =====
+//เริ่ม Session อัตโนมัติ
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

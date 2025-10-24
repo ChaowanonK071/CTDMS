@@ -1,6 +1,5 @@
 <?php
 /**
- * check_admin_user.php - ตรวจสอบและแสดงข้อมูล admin user ในฐานข้อมูล
  * ใช้สำหรับการทดสอบและ debug
  */
 

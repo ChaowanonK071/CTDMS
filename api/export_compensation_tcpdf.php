@@ -1,10 +1,8 @@
 <?php
 /**
  * Export Compensation Report to PDF using TCPDF
- * รูปแบบใบสอนชดเชยตามมาตรฐาน Eng-Srivijaya FM 02-21
  */
 
-// เพิ่ม output buffering และ error handling
 ob_start();
 ini_set('display_errors', 0);
 error_reporting(0);
