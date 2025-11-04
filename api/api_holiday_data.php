@@ -1,8 +1,6 @@
 <?php
 /**
- * API สำหรับดึงข้อมูลวันหยุด - Updated Version with Better Error Handling
- * ไฟล์: /api/api_holiday_data.php
- * เวอร์ชัน: 2.3 - แก้ไข HTTP 400/500 Error
+ * API สำหรับดึงข้อมูลวันหยุด
  */
 
 // ตั้งค่า Error Reporting และ Output Buffer
@@ -197,29 +195,48 @@ function getTeacherList() {
     global $user_id;
     try {
         $conn = connectMySQLi();
-        // ตรวจสอบสิทธิ์ admin
+        if (!$conn || $conn->connect_error) {
+            throw new Exception('การเชื่อมต่อฐานข้อมูลล้มเหลว');
+        }
+
+        // ตรวจสอบสิทธิ์ผู้ใช้เรียก (admin หรือไม่)
         $stmt = $conn->prepare("SELECT user_type FROM users WHERE user_id = ?");
         $stmt->bind_param('i', $user_id);
         $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        if (!$user || $user['user_type'] !== 'admin') {
-            apiJsonError('อนุญาตเฉพาะผู้ดูแลระบบ', 403);
-        }
-        $sql = "SELECT user_id, title, name, lastname FROM users WHERE user_type = 'teacher' OR user_type = 'admin' ORDER BY name, lastname";
-        $result = $conn->query($sql);
+
         $teachers = [];
-        while ($row = $result->fetch_assoc()) {
-            $teachers[] = $row;
+
+        if ($user && $user['user_type'] === 'admin') {
+            // ผู้ดูแลระบบ: ส่งรายชื่ออาจารย์ทั้งหมด
+            $sql = "SELECT user_id, title, name, lastname FROM users WHERE user_type IN ('teacher','admin') ORDER BY name, lastname";
+            $result = $conn->query($sql);
+            while ($row = $result->fetch_assoc()) {
+                $teachers[] = $row;
+            }
+        } else {
+            // ผู้ใช้ทั่วไป (เช่น teacher): ส่งข้อมูลตัวเองเท่านั้น
+            $sql = "SELECT user_id, title, name, lastname FROM users WHERE user_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param('i', $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $teachers[] = $row;
+            }
+            $stmt->close();
         }
+
         $conn->close();
         apiJsonSuccess('ดึงรายชื่ออาจารย์สำเร็จ', ['teachers' => $teachers]);
     } catch (Exception $e) {
+        error_log('getTeacherList Error: ' . $e->getMessage());
         apiJsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
 /**
- * ดึงข้อมูลวันหยุดทั้งหมด (รวม API และที่เพิ่มเอง)
+ * ดึงข้อมูลวันหยุดทั้งหมด
  */
 function getAllHolidays() {
     global $user_id;
@@ -234,7 +251,6 @@ function getAllHolidays() {
         // รับพารามิเตอร์
         $academic_year_id = $_POST['academic_year_id'] ?? $_GET['academic_year_id'] ?? null;
         
-        // SQL Query หลัก - แก้ไขเงื่อนไข is_custom
         $sql = "SELECT 
                     h.holiday_id,
                     h.academic_year,
@@ -373,7 +389,7 @@ function getAllHolidays() {
 }
 
 /**
- * ดึงข้อมูลวันหยุดแบบเดิม (backward compatibility)
+ * ดึงข้อมูลวันหยุดแบบเดิม
  */
 function getHolidays() {
     getAllHolidays();
@@ -579,7 +595,6 @@ function getClassSessions() {
             $types .= "i";
         }
 
-        // เพิ่ม JOIN subjects เพื่อดึง subject_code, subject_name
         $sql = "
             SELECT 
                 cs.session_id,

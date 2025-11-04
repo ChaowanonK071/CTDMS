@@ -104,7 +104,7 @@ $userData = $_SESSION;
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>ระบบจัดการตารางสอนตามปฏิทินวันหยุด - Dashboard</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
-    <link rel="icon" href="../img/kaiadmin/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -1158,9 +1158,15 @@ async function loadTeacherList() {
             const select = document.getElementById('teacherFilter');
             if (!select) return;
             const currentUserId = <?php echo (int)$userData['user_id']; ?>;
+            // เรียงอาาจารย์ตามชื่อ-นามสกุล (รองรับภาษาไทย)
+            const teachers = data.data.teachers.slice().sort((a, b) => {
+                const nameA = `${a.name || ''} ${a.lastname || ''}`.trim();
+                const nameB = `${b.name || ''} ${b.lastname || ''}`.trim();
+                return nameA.localeCompare(nameB, 'th', { sensitivity: 'base' });
+            });
             select.innerHTML = `<option value="">-- อาจารย์ --</option>`;
-            data.data.teachers.forEach(teacher => {
-                select.innerHTML += `<option value="${teacher.user_id}">${teacher.title}${teacher.name} ${teacher.lastname}</option>`;
+            teachers.forEach(teacher => {
+                select.innerHTML += `<option value="${teacher.user_id}">${teacher.title || ''}${teacher.name || ''} ${teacher.lastname || ''}</option>`;
             });
             // ตั้งค่า default เป็น user ที่ login
             select.value = currentUserId.toString();
@@ -1177,8 +1183,9 @@ async function loadTeacherList() {
 async function loadTeachingSchedules() {
     try {
         if (!ACADEMIC_YEAR_ID || ACADEMIC_YEAR_ID === 0) throw new Error('Academic Year ID ไม่ถูกต้อง');
-        // ใช้ user_id ที่ login เป็น teacher_id
-        const teacherId = <?php echo (int)$_SESSION['user_id']; ?>;
+        // ดึง teacher_id จาก select
+        const teacherSelect = document.getElementById('teacherFilter');
+        const teacherId = teacherSelect ? teacherSelect.value : '<?php echo (int)$_SESSION['user_id']; ?>';
         const params = {
             academic_year_id: ACADEMIC_YEAR_ID,
             teacher_id: teacherId
@@ -1212,8 +1219,9 @@ async function loadTeachingSchedules() {
 async function loadClassSessions() {
     try {
         if (!ACADEMIC_YEAR_ID || ACADEMIC_YEAR_ID === 0) throw new Error('Academic Year ID ไม่ถูกต้อง');
-        // ใช้ user_id ที่ login เป็น teacher_id
-        const teacherId = <?php echo (int)$_SESSION['user_id']; ?>;
+        // ดึง teacher_id จาก select
+        const teacherSelect = document.getElementById('teacherFilter');
+        const teacherId = teacherSelect ? teacherSelect.value : '<?php echo (int)$_SESSION['user_id']; ?>';
         const startDate = '<?php echo $start_date; ?>';
         const endDate = '<?php echo $end_date; ?>';
         const params = {

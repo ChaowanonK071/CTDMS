@@ -10,7 +10,7 @@ $userData = getUserData();
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>ระบบจัดการผู้ใช้ - Kaiadmin Bootstrap 5 Admin Dashboard</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
-    <link rel="icon" href="../img/kaiadmin/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -382,25 +382,19 @@ function loadUsers() {
     if (status !== '') {
         apiUrl += `&status=${encodeURIComponent(status)}`;
     }
-    
-    console.log('API URL:', apiUrl); // Debug
-    
+
     // Fetch data from API
     fetch(apiUrl)
         .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-            
+
             // ถ้า response ไม่ ok ให้อ่าน text เพื่อดู error
             if (!response.ok) {
                 return response.text().then(text => {
-                    console.log('Error response:', text);
                     throw new Error(`HTTP ${response.status}: ${text}`);
                 });
             }
             
             return response.text().then(text => {
-                console.log('Raw response:', text);
                 try {
                     return JSON.parse(text);
                 } catch (e) {
@@ -410,8 +404,6 @@ function loadUsers() {
             });
         })
         .then(data => {
-            console.log('Parsed data:', data);
-            
             if (data.status === 'success') {
                 totalPages = data.total_pages;
                 totalUsers = data.total;
@@ -780,11 +772,6 @@ function saveUser() {
     if (password) {
         userData.password = password;
     }
-    
-    // Debug - แสดงข้อมูลที่จะส่ง
-    console.log("Data to be sent:", JSON.stringify(userData));
-    
-    // Show loading
     showLoading();
     
     // Determine if creating or updating

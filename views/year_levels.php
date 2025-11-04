@@ -9,15 +9,8 @@ $userData = getUserData();
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>จัดการข้อมูลชั้นปี - Kaiadmin Bootstrap 5 Admin Dashboard</title>
-    <meta
-      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-      name="viewport"
-    />
-    <link
-      rel="icon"
-      href="../img/kaiadmin/favicon.ico"
-      type="image/x-icon"
-    />
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport"/>
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -249,16 +242,13 @@ let dataTable;
 
 // โหลดข้อมูลชั้นปี
 function loadYearLevels() {
-    // Debug: แสดง URL ที่จะเรียก
     const apiUrl = "../api/year_level_api.php";
-    console.log("Trying to load data from:", apiUrl);
     
     $.ajax({
         url: apiUrl,
         type: "GET",
         dataType: "json",
         success: function(response) {
-            console.log("Success response:", response);
             if (response.status === "success") {
                 yearLevelsData = response.data;
                 renderYearLevelsTable();

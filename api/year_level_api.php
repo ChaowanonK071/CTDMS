@@ -15,27 +15,60 @@ error_log("Headers: " . json_encode(getallheaders()));
 error_log("GET: " . json_encode($_GET));
 error_log("POST: " . json_encode($_POST));
 error_log("Raw Input: " . file_get_contents('php://input'));
-
-// รับค่า HTTP method
 $method = $_SERVER['REQUEST_METHOD'];
-
 // ตรวจสอบว่าเป็นคำขอ OPTIONS หรือไม่ (สำหรับ CORS preflight)
 if ($method === 'OPTIONS') {
     http_response_code(200);
     exit(0);
-}// เพิ่ม action สำหรับดึงรายชื่อโมดูลทั้งหมด
+}
+
+if ($method === 'PUT' && isset($_GET['action']) && $_GET['action'] === 'update_module_group') {
+    // อ่าน raw input และ decode JSON
+    $rawInput = file_get_contents('php://input');
+    $data = json_decode($rawInput, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'ข้อมูล JSON ไม่ถูกต้อง: ' . json_last_error_msg()]);
+        exit;
+    }
+
+    if (
+        !isset($data['group_id']) ||
+        !isset($data['module_id']) ||
+        !isset($data['year_level_ids']) ||
+        !is_array($data['year_level_ids']) ||
+        count($data['year_level_ids']) === 0
+    ) {
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'ต้องระบุ group_id, module_id และ year_level_ids (array อย่างน้อย 1 รายการ)',
+            'debug' => [
+                'group_id' => isset($data['group_id']) ? $data['group_id'] : null,
+                'module_id' => isset($data['module_id']) ? $data['module_id'] : null,
+                'year_level_ids' => isset($data['year_level_ids']) ? $data['year_level_ids'] : null,
+                'raw_input' => $rawInput
+            ]
+        ]);
+        exit;
+    }
+
+    $group_name = isset($data['group_name']) ? $data['group_name'] : null;
+    updateModuleGroup($data['group_id'], $data['module_id'], $data['year_level_ids'], $group_name);
+    exit;
+}
+
 if ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_all_modules') {
     getAllModules();
     exit;
 }
 
-// เพิ่ม action สำหรับดึงรายชื่อชั้นปีทั้งหมด
 if ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_all_year_levels') {
     getAllYearLevels();
     exit;
 }
 
-// เพิ่ม action สำหรับ mapping โมดูลกับหลายชั้นปี
 if ($method === 'POST' && isset($_GET['action']) && $_GET['action'] === 'set_year_levels_for_module') {
     $data = json_decode(file_get_contents('php://input'), true);
     if (!isset($data['module_id']) || !isset($data['year_level_ids'])) {
@@ -46,7 +79,6 @@ if ($method === 'POST' && isset($_GET['action']) && $_GET['action'] === 'set_yea
     exit;
 }
 
-// เพิ่ม action สำหรับสร้าง group ใหม่และ mapping กับ year_levels
 if ($method === 'POST' && isset($_GET['action']) && $_GET['action'] === 'create_module_group') {
     $data = json_decode(file_get_contents('php://input'), true);
     if (!isset($data['module_id']) || !isset($data['year_level_ids'])) {
@@ -65,7 +97,46 @@ if ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_modu
     exit;
 }
 
-// Debug: ตรวจสอบข้อมูลที่ได้รับ
+if ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_module') {
+    $id = isset($_GET['id']) ? intval($_GET['id']) : null;
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'ต้องระบุ id']);
+        exit;
+    }
+    getModule($id);
+    exit;
+}
+
+if ($method === 'POST' && isset($_GET['action']) && $_GET['action'] === 'create_module') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'ข้อมูล JSON ไม่ถูกต้อง: ' . json_last_error_msg()]);
+        exit;
+    }
+    createModule($data);
+    exit;
+}
+
+if ($method === 'PUT' && isset($_GET['action']) && $_GET['action'] === 'update_module') {
+    $rawInput = file_get_contents('php://input');
+    $data = json_decode($rawInput, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'ข้อมูล JSON ไม่ถูกต้อง: ' . json_last_error_msg()]);
+        exit;
+    }
+    updateModule($data);
+    exit;
+}
+
+if ($method === 'DELETE' && isset($_GET['action']) && $_GET['action'] === 'delete_module' && isset($_GET['module_id'])) {
+    $module_id = intval($_GET['module_id']);
+    deleteModule($module_id);
+    exit;
+}
+
 if (in_array($method, ['POST', 'PUT'])) {
     $rawInput = file_get_contents('php://input');
     error_log("Raw input: " . $rawInput);
@@ -78,7 +149,6 @@ if (in_array($method, ['POST', 'PUT'])) {
     }
 }
 
-// ประมวลผลตาม HTTP method
 try {
     switch ($method) {
         case 'GET':
@@ -559,53 +629,11 @@ function getModuleGroups($module_id = null) {
     }
 }
 
-// เพิ่ม action สำหรับแก้ไข group (update_module_group)
-if ($method === 'PUT' && isset($_GET['action']) && $_GET['action'] === 'update_module_group') {
-    // อ่าน raw input และ decode JSON
-    $rawInput = file_get_contents('php://input');
-    $data = json_decode($rawInput, true);
-
-    // ตรวจสอบ JSON decode error
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'ข้อมูล JSON ไม่ถูกต้อง: ' . json_last_error_msg()]);
-        exit;
-    }
-
-    // ตรวจสอบ parameter ที่จำเป็น
-    if (
-        !isset($data['group_id']) ||
-        !isset($data['module_id']) ||
-        !isset($data['year_level_ids']) ||
-        !is_array($data['year_level_ids']) ||
-        count($data['year_level_ids']) === 0
-    ) {
-        http_response_code(400);
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'ต้องระบุ group_id, module_id และ year_level_ids (array อย่างน้อย 1 รายการ)',
-            'debug' => [
-                'group_id' => isset($data['group_id']) ? $data['group_id'] : null,
-                'module_id' => isset($data['module_id']) ? $data['module_id'] : null,
-                'year_level_ids' => isset($data['year_level_ids']) ? $data['year_level_ids'] : null,
-                'raw_input' => $rawInput
-            ]
-        ]);
-        exit;
-    }
-    $group_name = isset($data['group_name']) ? $data['group_name'] : null;
-    updateModuleGroup($data['group_id'], $data['module_id'], $data['year_level_ids'], $group_name);
-    exit;
-}
-
-// เพิ่ม action สำหรับลบ group (delete_module_group)
 if ($method === 'DELETE' && isset($_GET['action']) && $_GET['action'] === 'delete_module_group' && isset($_GET['group_id'])) {
     $group_id = intval($_GET['group_id']);
     deleteModuleGroup($group_id);
     exit;
 }
-
-// ====== Module Group CRUD ======
 
 // ฟังก์ชันแก้ไข group และ mapping กับ year_levels
 function updateModuleGroup($group_id, $module_id, $year_level_ids, $group_name = null) {
@@ -613,19 +641,16 @@ function updateModuleGroup($group_id, $module_id, $year_level_ids, $group_name =
         $conn = connectDB();
         $conn->beginTransaction();
 
-        // อัปเดตข้อมูล group
         $stmt = $conn->prepare("UPDATE module_groups SET module_id = :module_id, group_name = :group_name WHERE group_id = :group_id");
         $stmt->bindParam(':module_id', $module_id, PDO::PARAM_INT);
         $stmt->bindParam(':group_name', $group_name, PDO::PARAM_STR);
         $stmt->bindParam(':group_id', $group_id, PDO::PARAM_INT);
         $stmt->execute();
 
-        // ลบ mapping เดิม
         $stmt = $conn->prepare("DELETE FROM module_group_year_levels WHERE group_id = :group_id");
         $stmt->bindParam(':group_id', $group_id, PDO::PARAM_INT);
         $stmt->execute();
 
-        // เพิ่ม mapping ใหม่
         $stmt = $conn->prepare("INSERT INTO module_group_year_levels (group_id, year_level_id) VALUES (:group_id, :year_level_id)");
         foreach ($year_level_ids as $year_level_id) {
             $stmt->bindParam(':group_id', $group_id, PDO::PARAM_INT);
@@ -662,6 +687,140 @@ function deleteModuleGroup($group_id) {
         echo json_encode(['status' => 'success', 'message' => 'ลบกลุ่มสำเร็จ']);
     } catch (PDOException $e) {
         $conn->rollBack();
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+// เพิ่มฟังก์ชันจัดการโมดูล
+function getModule($id) {
+    try {
+        $conn = connectDB();
+        $stmt = $conn->prepare("SELECT module_id, module_name, description FROM modules WHERE module_id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $module = $stmt->fetch();
+        if ($module) {
+            echo json_encode(['status' => 'success', 'data' => $module]);
+        } else {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'ไม่พบโมดูล']);
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+function createModule($data) {
+    try {
+        if (!isset($data['module_name']) || trim($data['module_name']) === '') {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'module_name ต้องไม่ว่าง']);
+            return;
+        }
+        $module_name = trim($data['module_name']);
+        $description = isset($data['description']) ? trim($data['description']) : null;
+
+        $conn = connectDB();
+        $stmt = $conn->prepare("SELECT module_id FROM modules WHERE module_name = :module_name");
+        $stmt->bindParam(':module_name', $module_name, PDO::PARAM_STR);
+        $stmt->execute();
+        if ($stmt->rowCount() > 0) {
+            http_response_code(409);
+            echo json_encode(['status' => 'error', 'message' => 'ชื่อโมดูลนี้มีอยู่แล้ว']);
+            return;
+        }
+
+        $stmt = $conn->prepare("INSERT INTO modules (module_name, description) VALUES (:module_name, :description)");
+        $stmt->bindParam(':module_name', $module_name, PDO::PARAM_STR);
+        $stmt->bindValue(':description', $description, PDO::PARAM_STR);
+        $stmt->execute();
+        $newId = $conn->lastInsertId();
+        echo json_encode(['status' => 'success', 'message' => 'สร้างโมดูลสำเร็จ', 'data' => ['module_id' => $newId]]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+function updateModule($data) {
+    try {
+        if (!isset($data['module_id']) || !is_numeric($data['module_id'])) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'ต้องระบุ module_id สำหรับการอัพเดท']);
+            return;
+        }
+        $module_id = intval($data['module_id']);
+        $module_name = isset($data['module_name']) ? trim($data['module_name']) : null;
+        $description = isset($data['description']) ? trim($data['description']) : null;
+
+        if (($module_name === null || $module_name === '') && $description === null) {
+            echo json_encode(['status' => 'success', 'message' => 'ไม่มีข้อมูลที่ต้องอัพเดท']);
+            return;
+        }
+
+        $conn = connectDB();
+
+        $stmt = $conn->prepare("SELECT module_id FROM modules WHERE module_id = :id");
+        $stmt->bindParam(':id', $module_id, PDO::PARAM_INT);
+        $stmt->execute();
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'ไม่พบโมดูลที่ต้องการอัพเดท']);
+            return;
+        }
+
+        if ($module_name !== null && $module_name !== '') {
+            $stmt = $conn->prepare("SELECT module_id FROM modules WHERE module_name = :module_name AND module_id != :id");
+            $stmt->bindParam(':module_name', $module_name, PDO::PARAM_STR);
+            $stmt->bindParam(':id', $module_id, PDO::PARAM_INT);
+            $stmt->execute();
+            if ($stmt->rowCount() > 0) {
+                http_response_code(409);
+                echo json_encode(['status' => 'error', 'message' => 'ชื่อโมดูลนี้มีอยู่แล้ว']);
+                return;
+            }
+        }
+
+        $fields = [];
+        $params = [];
+        if ($module_name !== null && $module_name !== '') {
+            $fields[] = "module_name = :module_name";
+            $params[':module_name'] = $module_name;
+        }
+        if ($description !== null) {
+            $fields[] = "description = :description";
+            $params[':description'] = $description;
+        }
+        $sql = "UPDATE modules SET " . implode(", ", $fields) . " WHERE module_id = :id";
+        $params[':id'] = $module_id;
+        $stmt = $conn->prepare($sql);
+        foreach ($params as $p => $v) {
+            $type = is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($p, $v, $type);
+        }
+        $stmt->execute();
+        echo json_encode(['status' => 'success', 'message' => 'อัพเดทโมดูลสำเร็จ']);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+}
+
+function deleteModule($module_id) {
+    try {
+        $conn = connectDB();
+        $stmt = $conn->prepare("DELETE FROM modules WHERE module_id = :id");
+        $stmt->bindParam(':id', $module_id, PDO::PARAM_INT);
+        $stmt->execute();
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(['status' => 'success', 'message' => 'ลบโมดูลสำเร็จ']);
+        } else {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'ไม่พบโมดูล']);
+        }
+    } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }

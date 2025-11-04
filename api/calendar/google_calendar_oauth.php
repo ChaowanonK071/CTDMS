@@ -1,10 +1,4 @@
 <?php
-/**
- * Google OAuth Callback Handler - ปรับปรุงแล้ว
- * ไฟล์: /api/calendar/google_calendar_oauth.php
- * จัดการการเชื่อมต่อ Google Calendar
- */
-
 // เพิ่มการ debug เพื่อดูปัญหา redirect
 ini_set('display_errors', 1);
 error_log("Google OAuth Callback started - " . date('Y-m-d H:i:s'));
@@ -326,7 +320,7 @@ function exchangeCodeForToken($code) {
         'Content-Type: application/x-www-form-urlencoded'
     ]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // สำหรับการทดสอบ
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -372,7 +366,7 @@ function getUserInfoFromGoogle($accessToken) {
         'Authorization: Bearer ' . $accessToken
     ]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // สำหรับการทดสอบ
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -495,9 +489,7 @@ function saveGoogleAuthData($user_id, $tokenData, $userInfo) {
     }
 }
 
-/**
- * สร้างตาราง google_auth ถ้ายังไม่มี
- */
+
 function createGoogleAuthTableIfNotExists($conn) {
     $createTable = "CREATE TABLE IF NOT EXISTS google_auth (
         google_auth_id INT(11) PRIMARY KEY AUTO_INCREMENT,
@@ -580,7 +572,7 @@ function showSuccess($userInfo, $operation) {
     <body class="bg-light">
         <div class="container">
             <div class="success-container text-center">
-                <div class="success-icon">✅</div>
+                <div class="success-icon"></div>
                 <h2 class="text-success mb-4">เชื่อมต่อ Google Calendar สำเร็จ!</h2>
                 
                 <div class="text-start mb-4">
@@ -681,7 +673,7 @@ function showError($message) {
     <body class="bg-light">
         <div class="container">
             <div class="error-container text-center">
-                <div class="error-icon">❌</div>
+                <div class="error-icon"></div>
                 <h2 class="text-danger mb-4">เกิดข้อผิดพลาด</h2>
                 
                 <div class="alert alert-danger">

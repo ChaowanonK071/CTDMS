@@ -10,12 +10,10 @@ error_reporting(0);
 require_once '../config/database.php';
 require_once '../vendor/autoload.php';
 
-// Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     ob_end_clean();
     header('Content-Type: application/json');
@@ -94,9 +92,9 @@ $academic_year_id = $_GET['academic_year_id'] ?? 0;
 $status_filter = $_GET['status_filter'] ?? 'confirmed_only';
 $teacher_id = $_GET['teacher_id'] ?? null;
 $cancellation_id = $_GET['cancellation_id'] ?? null;
+$teacher_role = $_GET['teacher_role'] ?? 'main';
 $test_mode = isset($_GET['test']);
 
-// ตรวจสอบพารามิเตอร์
 if (!$academic_year_id || !is_numeric($academic_year_id)) {
     ob_end_clean();
     if ($test_mode) {
@@ -112,15 +110,12 @@ if (!$academic_year_id || !is_numeric($academic_year_id)) {
 }
 
 try {
-    // ตรวจสอบการเชื่อมต่อฐานข้อมูล
     if (!$conn) throw new Exception('Database connection failed');
 
-    // ดึงข้อมูลปีการศึกษา
     $academic_query = "SELECT * FROM academic_years WHERE academic_year_id = ?";
     $academic = fetchOne($academic_query, [$academic_year_id]);
     if (!$academic) throw new Exception('ไม่พบข้อมูลปีการศึกษา ID: ' . $academic_year_id);
 
-    // สร้างเงื่อนไขกรองอาจารย์
     $teacher_condition = "";
     $teacher_params = [];
     if ($teacher_id && is_numeric($teacher_id)) {
@@ -128,7 +123,6 @@ try {
         $teacher_params = [$teacher_id];
     }
 
-    // ดึงข้อมูลอาจารย์ที่เลือก
     $selected_teacher = null;
     if ($teacher_id) {
         $teacher_query = "SELECT title, name, lastname, secname, depname, reason, CONCAT(title, name, ' ', lastname) as teacher_name FROM users WHERE user_id = ?";
@@ -138,10 +132,9 @@ try {
         $selected_teacher = getCurrentUser();
     }
 
-    // ดึงข้อมูล Compensation Logs
     $compensation_where_clause = "WHERE ts.academic_year_id = ?";
     if ($status_filter === 'confirmed_only') {
-    $compensation_where_clause .= " AND cl.status IN ('ดำเนินการแล้ว', 'รอยืนยัน')";
+        $compensation_where_clause .= " AND cl.status IN ('ดำเนินการแล้ว', 'รอยืนยัน')";
     }
     $compensation_where_clause .= $teacher_condition;
     $compensation_params = array_merge([$academic_year_id], $teacher_params);
@@ -163,7 +156,8 @@ try {
             cl.proposed_makeup_end_time_slot_id,
             s.subject_code, s.subject_name,
             u.title, u.name, u.lastname, u.secname, u.depname,
-            yl.department, yl.class_year,
+            ts.is_module_subject, ts.group_id,
+            yl.department, yl.class_year, yl.curriculum,
             c.room_number,
             start_slot.start_time, end_slot.end_time,
             makeup_room.room_number as makeup_room_number,
@@ -172,11 +166,15 @@ try {
             proposed_makeup_room.room_number as proposed_makeup_room_number,
             proposed_makeup_start.start_time as proposed_makeup_start_time,
             proposed_makeup_end.end_time as proposed_makeup_end_time,
-            approved_user.name as approved_by_name
+            approved_user.name as approved_by_name,
+            co1.title as co1_title, co1.name as co1_name, co1.lastname as co1_lastname,
+            co2.title as co2_title, co2.name as co2_name, co2.lastname as co2_lastname
         FROM compensation_logs cl
         LEFT JOIN teaching_schedules ts ON cl.schedule_id = ts.schedule_id
         LEFT JOIN subjects s ON ts.subject_id = s.subject_id
         LEFT JOIN users u ON ts.user_id = u.user_id
+        LEFT JOIN users co1 ON ts.co_user_id = co1.user_id
+        LEFT JOIN users co2 ON ts.co_user_id_2 = co2.user_id
         LEFT JOIN users approved_user ON cl.approved_by = approved_user.user_id
         LEFT JOIN year_levels yl ON ts.year_level_id = yl.year_level_id
         LEFT JOIN classrooms c ON ts.classroom_id = c.classroom_id
@@ -193,47 +191,58 @@ try {
     ";
     $compensations = fetchAll($compensation_query, $compensation_params);
 
-    // ล้าง output buffer ก่อนสร้าง PDF
+    // ดึง year_levels_in_group สำหรับแต่ละ compensation ถ้าเป็นโมดูล
+    foreach ($compensations as $idx => $comp) {
+        $year_levels_in_group = [];
+        if (isset($comp['is_module_subject']) && $comp['is_module_subject'] == 1 && !empty($comp['group_id'])) {
+            $group_id = $comp['group_id'];
+            $yl_query = "SELECT yl.year_level_id, yl.department, yl.class_year, yl.curriculum
+                         FROM module_group_year_levels mgyl
+                         JOIN year_levels yl ON mgyl.year_level_id = yl.year_level_id
+                         WHERE mgyl.group_id = ?";
+            $yl_stmt = $conn->prepare($yl_query);
+            $yl_stmt->bind_param("i", $group_id);
+            $yl_stmt->execute();
+            $yl_result = $yl_stmt->get_result();
+            while ($row = $yl_result->fetch_assoc()) {
+                $year_levels_in_group[] = $row;
+            }
+            $compensations[$idx]['year_levels_in_group'] = $year_levels_in_group;
+        } else {
+            $compensations[$idx]['year_levels_in_group'] = [];
+        }
+    }
+
     ob_end_clean();
 
-    // สร้าง PDF ด้วย TCPDF - ใช้ portrait orientation
     $pdf = new TCPDF('P', PDF_UNIT, 'A4', true, 'UTF-8', false);
 
-    // ตั้งค่าข้อมูลเอกสาร
     $pdf->SetCreator('ระบบจัดการตารางเรียน');
     $pdf->SetAuthor('ระบบจัดการตารางเรียน');
     $pdf->SetTitle('ใบสอนชดเชย');
     $pdf->SetSubject('ใบสอนชดเชย');
 
-    // ปิด header และ footer อัตโนมัติ
     $pdf->setPrintHeader(false);
     $pdf->setPrintFooter(false);
 
-    // ตั้งค่าระยะขอบ
     $pdf->SetMargins(20, 15, 20);
 
-    // ตั้งค่าฟอนต์เริ่มต้น
     $pdf->SetFont('thsarabunnew', '', 14);
 
-    // เพิ่มหน้า
     $pdf->AddPage();
 
-    // ส่วนหัวบนขวา - เลขที่เอกสาร
     $pdf->SetFont('thsarabunnew', '', 13);
     $pdf->Cell(0, 5, 'หน้าที่...1.../...1...', 0, 1, 'R');
     $pdf->Ln(2);
 
-    // ส่วนหัวซ้าย - ชื่อมหาวิทยาลัยและคณะ
     $pdf->SetFont('thsarabunnew', '', 13);
     $pdf->MultiCell(0, 5, "มหาวิทยาลัยเทคโนโลยีราชมงคลศรีวิชัย\nคณะวิศวกรรมศาสตร์", 0, 'L', 0, 1, '', '', true);
     $pdf->Ln(5);
 
-    // หัวข้อเอกสาร
     $pdf->SetFont('thsarabunnew', 'B', 18);
     $pdf->Cell(0, 10, 'ใบสอนชดเชย', 0, 1, 'C');
     $pdf->Ln(5);
 
-    // วันที่พิมพ์เอกสาร
     $months_th_full = [
         "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
         "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
@@ -243,59 +252,73 @@ try {
     $pdf->Cell(0, 6, "วันที่..." . date('d') . "... เดือน..." . $current_month . ".... พ.ศ. ..." . (date('Y') + 543) . ".........", 0, 1, 'R');
     $pdf->Ln(3);
 
-    // เรียน คณบดี
     $pdf->SetFont('thsarabunnew', '', 16);
     $pdf->Cell(0, 7, 'เรียน     คณบดีคณะวิศวกรรมศาสตร์', 0, 1, 'L');
     $pdf->Ln(2);
 
-    // ข้อมูลอาจารย์
-    if ($selected_teacher) {
-        $teacher_title = $selected_teacher['title'] ?? '';
-        $teacher_name = $selected_teacher['name'] ?? '';
-        $teacher_lastname = $selected_teacher['lastname'] ?? '';
-        $section_name = $selected_teacher['secname'] ?? '';
-        $dep_name = $selected_teacher['depname'] ?? '';
-        $fac_name = 'วิศวกรรมศาสตร์';
+    // ข้อมูลอาจารย์ (เลือกบทบาทตาม teacher_role)
+    $teacher_title = '';
+    $teacher_name = '';
+    $teacher_lastname = '';
+    $section_name = 'วิศวกรรมศาสตร์';
+    $dep_name = 'วิศวกรรมศาสตร์';
+    $fac_name = 'วิศวกรรมศาสตร์';
+    $co_teacher_name = '';
+    $co_teacher_name_2 = '';
 
-        // ดึง reason จาก compensation_logs ตัวแรกที่มีข้อมูล
-        $reason = 'ไม่ระบุเหตุผล';
-        $cancel_date = '';
-        if (count($compensations) > 0) {
-            foreach ($compensations as $comp) {
-                if (isset($comp['reason']) && trim($comp['reason']) !== '') {
-                    $reason = trim($comp['reason']);
-                    $cancel_date = $comp['cancellation_date'] ? thaiDate($comp['cancellation_date']) : '';
-                    break;
-                }
-            }
-        } elseif (isset($selected_teacher['reason']) && trim($selected_teacher['reason']) !== '') {
-            $reason = trim($selected_teacher['reason']);
+    if (count($compensations) > 0) {
+        $first_comp = $compensations[0];
+        if ($teacher_role === 'main') {
+            $teacher_title = $first_comp['title'] ?? '';
+            $teacher_name = $first_comp['name'] ?? '';
+            $teacher_lastname = $first_comp['lastname'] ?? '';
+        } elseif ($teacher_role === 'co1') {
+            $co1_title = $first_comp['co1_title'] ?? '';
+            $co1_name = $first_comp['co1_name'] ?? '';
+            $co1_lastname = $first_comp['co1_lastname'] ?? '';
+        } elseif ($teacher_role === 'co2') {
+            $co2_title = $first_comp['co2_title'] ?? '';
+            $co2_name = $first_comp['co2_name'] ?? '';
+            $co2_lastname = $first_comp['co2_lastname'] ?? '';
         }
-
-        $pdf->SetFont('thsarabunnew', '', 16);
-        $teacher_info_line1 = "            ข้าพเจ้า {$teacher_title} {$teacher_name} {$teacher_lastname} สังกัดหลักสูตรสาขาวิชา {$section_name}............................................";
-        $teacher_info_line2 = "สาขา {$dep_name} คณะ {$fac_name} ไม่สามารถทำการสอนได้ทันตามหลักสูตรเนื่องจาก..................";
-        $teacher_info_line3 = "ตรงกับ{$reason}" . ($cancel_date ? " วันที่ {$cancel_date}" : "");
-        $teacher_info_line4 = ".......................................................................................................................................................................................";
-
-        $pdf->MultiCell(0, 7, $teacher_info_line1, 0, 'L', 0, 1, '', '', true);
-        $pdf->MultiCell(0, 7, $teacher_info_line2, 0, 'L', 0, 1, '', '', true);
-        $pdf->MultiCell(0, 7, $teacher_info_line3, 0, 'L', 0, 1, '', '', true);
-        $pdf->MultiCell(0, 7, $teacher_info_line4, 0, 'L', 0, 1, '', '', true);
-
-        $pdf->Ln(2);
-    } else {
-        $pdf->SetFont('thsarabunnew', '', 16);
-        $pdf->MultiCell(0, 7, "ไม่พบข้อมูลอาจารย์", 0, 'L', 0, 1, '', '', true);
-        $pdf->Ln(2);
     }
-    // ข้อความก่อนตาราง
+
+    // ดึง reason จาก compensation_logs ตัวแรกที่มีข้อมูล
+    $reason = 'ไม่ระบุเหตุผล';
+    $cancel_date = '';
+    if (count($compensations) > 0) {
+        foreach ($compensations as $comp) {
+            if (isset($comp['reason']) && trim($comp['reason']) !== '') {
+                $reason = trim($comp['reason']);
+                $cancel_date = $comp['cancellation_date'] ? thaiDate($comp['cancellation_date']) : '';
+                break;
+            }
+        }
+    } elseif (isset($selected_teacher['reason']) && trim($selected_teacher['reason']) !== '') {
+        $reason = trim($selected_teacher['reason']);
+    }
+
+    $pdf->SetFont('thsarabunnew', '', 16);
+    if ($teacher_role === 'main') {
+        $teacher_info_line1 = "            ข้าพเจ้า {$teacher_title} {$teacher_name} {$teacher_lastname} สังกัดหลักสูตรสาขาวิชา {$section_name} สาขา {$dep_name}";
+    } elseif ($teacher_role === 'co1') {
+        $teacher_info_line1 = "            ข้าพเจ้า {$co1_title} {$co1_name} {$co1_lastname} สังกัดหลักสูตรสาขาวิชา {$section_name} สาขา {$dep_name}";
+    } elseif ($teacher_role === 'co2') {
+        $teacher_info_line1 = "            ข้าพเจ้า {$co2_title} {$co2_name} {$co2_lastname} สังกัดหลักสูตรสาขาวิชา {$section_name} สาขา {$dep_name}";
+    }
+    $teacher_info_line2 = "คณะ {$fac_name} ไม่สามารถทำการสอนได้ทันตามหลักสูตรเนื่องจาก ตรงกับ {$reason}";
+    $teacher_info_line3 = "" . ($cancel_date ? "วันที่ {$cancel_date}" : "");
+
+    $pdf->MultiCell(0, 7, $teacher_info_line1, 0, 'L', 0, 1, '', '', true);
+    $pdf->MultiCell(0, 7, $teacher_info_line2, 0, 'L', 0, 1, '', '', true);
+    $pdf->MultiCell(0, 7, $teacher_info_line3, 0, 'L', 0, 1, '', '', true);
+    $pdf->Ln(2);
+
     $pdf->SetFont('thsarabunnew', '', 16);
     $pdf->Cell(0, 6, 'จึงขออนุญาตทำการสอนชดเชยดังนี้', 0, 1, 'L');
     $pdf->Ln(3);
 
     if (count($compensations) > 0) {
-        // สร้างตาราง HTML ตามรูปแบบในภาพ - ตารางสมบูรณ์และเรียบร้อย
         $html = '<style>
             table.compensation {
                 border-collapse: collapse;
@@ -340,11 +363,9 @@ try {
         $html .= '<th width="10%" style="padding: 14px 5px; font-size:13pt; height:28px; text-align:center;">ห้อง</th>';
         $html .= '</tr>';
         $html .= '</thead>';
-        // ข้อมูลในตาราง
         $html .= '<tbody>';
         foreach ($compensations as $comp) {
             $subject_name = $comp['subject_name'] ?? '';
-            $class_year = ($comp['department'] ?? '') . ($comp['class_year'] ?? '');
             $original_time = '';
             if ($comp['start_time'] && $comp['end_time']) {
                 $original_time = formatTime($comp['start_time']) . '-' . formatTime($comp['end_time']);
@@ -354,59 +375,74 @@ try {
                 $makeup_time = formatTime($comp['proposed_makeup_start_time']) . '-' . formatTime($comp['proposed_makeup_end_time']);
             }
             $makeup_date = $comp['proposed_makeup_date'] ?? '';
-            $html .= '<tr>';
-            $html .= '<td width="10%" style="height:20px;text-align:center;">' . shortThaiDate($comp['cancellation_date']) . '</td>';
-            $html .= '<td width="34%" style="height:20px;">' . htmlspecialchars($subject_name) . '</td>';
-            $html .= '<td width="10%" style="height:20px;text-align:center;">' . ($comp['subject_code'] ?? '') . '</td>';
-            $html .= '<td width="10%" style="height:20px;text-align:center;">' . $original_time . '</td>';
-            $html .= '<td width="8%" style="height:20px;text-align:center;">' . ($comp['room_number'] ?? '') . '</td>';
-            $html .= '<td width="8%" style="height:20px;text-align:center;">' . $class_year . '</td>';
-            $html .= '<td width="10%" style="height:20px;text-align:center;">' . ($makeup_date ? shortThaiDate($makeup_date) : '') . '</td>';
-            $html .= '<td width="10%" style="height:20px;text-align:center;">' . $makeup_time . '</td>';
-            $html .= '<td width="10%" style="height:20px;text-align:center;">' . ($comp['proposed_makeup_room_number'] ?? '') . '</td>';
-            $html .= '</tr>';
+
+            // ถ้าเป็นโมดูลและมีหลายชั้นปี ให้สร้างแถวละชั้นปี
+            if (!empty($comp['year_levels_in_group'])) {
+                foreach ($comp['year_levels_in_group'] as $yl) {
+                    $class_year = ($yl['department'] ?? '') . ' ' . ($yl['class_year'] ?? '') . (isset($yl['curriculum']) ? ' ' . $yl['curriculum'] : '');
+                    $html .= '<tr>';
+                    $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . shortThaiDate($comp['cancellation_date']) . '</td>';
+                    $html .= '<td width="34%" style="font-size: 10pt; height:20px;">' . htmlspecialchars($subject_name) . '</td>';
+                    $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . ($comp['subject_code'] ?? '') . '</td>';
+                    $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . $original_time . '</td>';
+                    $html .= '<td width="8%" style="font-size: 10pt; height:20px;text-align:center;">' . ($comp['room_number'] ?? '') . '</td>';
+                    $html .= '<td width="8%" style="font-size: 10pt; height:20px;text-align:center;">' . $class_year . '</td>';
+                    $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . ($makeup_date ? shortThaiDate($makeup_date) : '') . '</td>';
+                    $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . $makeup_time . '</td>';
+                    $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . ($comp['proposed_makeup_room_number'] ?? '') . '</td>';
+                    $html .= '</tr>';
+                }
+            }else {
+                $class_year = ($comp['department'] ?? '') . ' ' . ($comp['class_year'] ?? '') . (isset($comp['curriculum']) && $comp['curriculum'] ? ' ' . $comp['curriculum'] : '');
+                $html .= '<tr>';
+                $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . shortThaiDate($comp['cancellation_date']) . '</td>';
+                $html .= '<td width="34%" style="font-size: 10pt; height:20px;">' . htmlspecialchars($subject_name) . '</td>';
+                $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . ($comp['subject_code'] ?? '') . '</td>';
+                $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . $original_time . '</td>';
+                $html .= '<td width="8%" style="font-size: 10pt; height:20px;text-align:center;">' . ($comp['room_number'] ?? '') . '</td>';
+                $html .= '<td width="8%" style="font-size: 10pt; height:20px;text-align:center;">' . $class_year . '</td>';
+                $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . ($makeup_date ? shortThaiDate($makeup_date) : '') . '</td>';
+                $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . $makeup_time . '</td>';
+                $html .= '<td width="10%" style="font-size: 10pt; height:20px;text-align:center;">' . ($comp['proposed_makeup_room_number'] ?? '') . '</td>';
+                $html .= '</tr>';
+            }
+            
         }
-        // เพิ่มแถวว่างสำหรับกรอกข้อมูล
         for ($i = 0; $i < 7; $i++) {
             $html .= '<tr>';
-            $html .= '<td width="10%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="34%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="10%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="10%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="8%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="8%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="10%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="10%" style="height:20px;">&nbsp;</td>';
-            $html .= '<td width="10%" style="height:20px;">&nbsp;</td>';
+            $html .= '<td width="10%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="34%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="10%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="10%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="8%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="8%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="10%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="10%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
+            $html .= '<td width="10%" style="font-size: 10pt; height:20px;">&nbsp;</td>';
             $html .= '</tr>';
         }
         $html .= '</tbody>';
         $html .= '</table>';
-        // แสดงตาราง
-        $pdf->SetFont('thsarabunnew', '', 13);
+        $pdf->SetFont('thsarabunnew', '', 12);
         $pdf->writeHTML($html, true, false, true, false, '');
     } else {
-        $pdf->SetFont('thsarabunnew', '', 13);
+        $pdf->SetFont('thsarabunnew', '', 12);
         $pdf->Cell(0, 20, 'ไม่พบข้อมูลการชดเชยที่ตรงกับเงื่อนไขที่กำหนด', 0, 1, 'C');
     }
 
-    // ส่วนลายเซ็น
     $pdf->Ln(8);
     $pdf->SetFont('thsarabunnew', '', 16);
-    // แถวลายเซ็นแรก
     $pdf->Cell(90, 6, 'ลงชื่อ.................................................', 0, 0, 'C');
     $pdf->Cell(90, 6, 'ลงชื่อ.................................................', 0, 1, 'C');
     $pdf->Cell(90, 6, '          อาจารย์ผู้สอน', 0, 0, 'C');
     $pdf->Cell(90, 6, '          ประธานหลักสูตรสาขาวิชา', 0, 1, 'C');
     $pdf->Ln(5);
-    // แถวลายเซ็นที่สอง
     $pdf->Cell(90, 6, 'ลงชื่อ.................................................', 0, 0, 'C');
     $pdf->Cell(90, 6, 'ลงชื่อ.................................................', 0, 1, 'C');
     $pdf->Cell(90, 6, '          รองคณบดีฝ่ายวิชาการและวิจัย', 0, 0, 'C');
     $pdf->Cell(90, 6, '          คณบดีคณะวิศวกรรมศาสตร์', 0, 1, 'C');
     $pdf->Ln(8);
 
-    // หมายเหตุ
     $pdf->SetFont('thsarabunnew', '', 16);
     $note_text = "หมายเหตุ     1. ต้องจัดทำล่วงหน้าอย่างน้อย 1 สัปดาห์  เพื่อแนบในบันทึกการสอนภายนอกเวลา\n";
     $note_text .= "                 2. การทำการสอนชดเชยต้องสอนก่อน หรือ หลังการขาดการสอน 1 สัปดาห์";
@@ -416,11 +452,46 @@ try {
     if ($cancellation_id) {
         $filename = "ใบสอนชดเชย_{$cancellation_id}_" . date('Ymd_His') . ".pdf";
     } else {
-        $teacher_label = $selected_teacher ? '_' . preg_replace('/[^ก-๙a-zA-Z0-9_-]/u', '', $selected_teacher['teacher_name'] ?? '') : '';
+        $teacher_label = '';
+        if (count($compensations) > 0) {
+            $first_comp = $compensations[0];
+            if ($teacher_role === 'main') {
+                $teacher_label = '_' . preg_replace(
+                    '/[^ก-๙a-zA-Z0-9_-]/u',
+                    '',
+                    ($first_comp['title'] ?? '') . ($first_comp['name'] ?? '') . ($first_comp['lastname'] ?? '')
+                );
+            } elseif ($teacher_role === 'co1') {
+                $teacher_label = '_' . preg_replace(
+                    '/[^ก-๙a-zA-Z0-9_-]/u',
+                    '',
+                    ($first_comp['co_teacher_name'] ?? '')
+                );
+            } elseif ($teacher_role === 'co2') {
+                $teacher_label = '_' . preg_replace(
+                    '/[^ก-๙a-zA-Z0-9_-]/u',
+                    '',
+                    ($first_comp['co_teacher_name_2'] ?? '')
+                );
+            } elseif ($teacher_role === 'all') {
+                $names = [];
+                if ($first_comp['title'] ?? false || $first_comp['name'] ?? false || $first_comp['lastname'] ?? false) {
+                    $names[] = ($first_comp['title'] ?? '') . ($first_comp['name'] ?? '') . ($first_comp['lastname'] ?? '');
+                }
+                if ($first_comp['co_teacher_name'] ?? false) $names[] = $first_comp['co_teacher_name'];
+                if ($first_comp['co_teacher_name_2'] ?? false) $names[] = $first_comp['co_teacher_name_2'];
+                $teacher_label = '_' . preg_replace('/[^ก-๙a-zA-Z0-9_-]/u', '', implode('_', $names));
+            }
+        } elseif ($selected_teacher) {
+            $teacher_label = '_' . preg_replace(
+                '/[^ก-๙a-zA-Z0-9_-]/u',
+                '',
+                ($selected_teacher['title'] ?? '') . ($selected_teacher['name'] ?? '') . ($selected_teacher['lastname'] ?? '')
+            );
+        }
         $filename = "ใบสอนชดเชย{$teacher_label}_" . date('Ymd_His') . ".pdf";
     }
 
-    // Output PDF
     $pdf->Output($filename, 'D');
 
 } catch (Exception $e) {

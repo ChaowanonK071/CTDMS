@@ -620,14 +620,7 @@ if (!function_exists('isAdmin')) {
                 }
             }
             
-            // วิธีที่ 2: ตรวจสอบจาก user_id ที่กำหนดไว้ล่วงหน้า (ตามฐานข้อมูลที่แสดง)
-            $predefined_admins = [1, 23]; // Admin IDs จากฐานข้อมูล
-            if (in_array($user_id, $predefined_admins)) {
-                error_log("User {$user_id} is admin via predefined list");
-                return true;
-            }
-            
-            // วิธีสำรอง: ตรวจสอบจาก role field (หากมี)
+            // วิธีสำรอง: ตรวจสอบจาก
             $role_check_sql = "SELECT role FROM users WHERE user_id = ?";
             $stmt = $mysqli->prepare($role_check_sql);
             if ($stmt) {

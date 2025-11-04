@@ -1,10 +1,4 @@
 <?php
-/**
- * schedule_api.php - API สำหรับจัดการข้อมูลตารางสอน (ฉบับสมบูรณ์)
- * รองรับการเพิ่มวิชาใหม่และการค้นหาวิชา
- * เวอร์ชัน: 3.0
- * อัปเดต: July 2025
- */
 
 // Set error reporting and logging
 error_reporting(E_ALL);
@@ -328,7 +322,7 @@ function getTeachers() {
         }
         $conn->close();
         
-        error_log("✅ Teachers loaded with current user priority - found " . count($teachers) . " teachers (current user ID: $auth_user_id)");
+        error_log("Teachers loaded with current user priority - found " . count($teachers) . " teachers (current user ID: $auth_user_id)");
         
         return ['status' => 'success', 'data' => $teachers];
     } catch (Exception $e) {
@@ -428,8 +422,6 @@ function getTimeSlots() {
     }
 }
 
-// === Subject Management Functions ===
-
 /**
  * เพิ่มวิชาใหม่
  */
@@ -457,8 +449,7 @@ function addSubject() {
         $subject_code = trim($data['subject_code']);
         $subject_name = trim($data['subject_name']);
         $subject_type = trim($data['subject_type']);
-        $credits = isset($data['credits']) ? intval($data['credits']) : 3; // Default 3 credits
-        
+        $credits = isset($data['credits']) ? intval($data['credits']) : 3;
         // ตรวจสอบประเภทวิชา
         if (!in_array($subject_type, ['ทฤษฎี', 'ปฏิบัติ'])) {
             return handleError('ประเภทวิชาไม่ถูกต้อง');
@@ -490,7 +481,7 @@ function addSubject() {
             $stmt->close();
             $conn->close();
             
-            error_log("✅ New subject added: ID=$subject_id, Code=$subject_code, Name=$subject_name, Type=$subject_type");
+            error_log("New subject added: ID=$subject_id, Code=$subject_code, Name=$subject_name, Type=$subject_type");
             
             return [
                 'status' => 'success',
@@ -506,12 +497,12 @@ function addSubject() {
             $stmt->close();
             $conn->close();
             
-            error_log("❌ Error adding subject: " . $error);
+            error_log("Error adding subject: " . $error);
             return handleError('เกิดข้อผิดพลาดในการบันทึกวิชา: ' . $error);
         }
         
     } catch (Exception $e) {
-        error_log("❌ Exception in addSubject: " . $e->getMessage());
+        error_log("Exception in addSubject: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการเพิ่มวิชา: ' . $e->getMessage());
     }
 }
@@ -552,7 +543,7 @@ function searchSubjects() {
         return ['status' => 'success', 'data' => $subjects];
         
     } catch (Exception $e) {
-        error_log("❌ Error in searchSubjects: " . $e->getMessage());
+        error_log("Error in searchSubjects: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการค้นหาวิชา: ' . $e->getMessage());
     }
 }
@@ -594,7 +585,7 @@ function updateSubject() {
         
         $conn = connectMySQLi();
         
-        // ตรวจสอบความซ้ำซ้อนของรหัสวิชา + ประเภท (ยกเว้นตัวเอง)
+        // ตรวจสอบความซ้ำซ้อนของรหัสวิชา
         $checkSQL = "SELECT subject_id FROM subjects WHERE subject_code = ? AND subject_type = ? AND subject_id != ?";
         $stmt = $conn->prepare($checkSQL);
         $stmt->bind_param("ssi", $subject_code, $subject_type, $subject_id);
@@ -619,7 +610,7 @@ function updateSubject() {
             $conn->close();
             
             if ($affected_rows > 0) {
-                error_log("✅ Subject updated: ID=$subject_id, Code=$subject_code");
+                error_log("Subject updated: ID=$subject_id, Code=$subject_code");
                 return [
                     'status' => 'success',
                     'message' => 'อัปเดตข้อมูลวิชาสำเร็จ',
@@ -633,12 +624,12 @@ function updateSubject() {
             $stmt->close();
             $conn->close();
             
-            error_log("❌ Error updating subject: " . $error);
+            error_log("Error updating subject: " . $error);
             return handleError('เกิดข้อผิดพลาดในการอัปเดตวิชา: ' . $error);
         }
         
     } catch (Exception $e) {
-        error_log("❌ Exception in updateSubject: " . $e->getMessage());
+        error_log("Exception in updateSubject: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการอัปเดตวิชา: ' . $e->getMessage());
     }
 }
@@ -685,7 +676,7 @@ function deleteSubject() {
             $conn->close();
             
             if ($affected_rows > 0) {
-                error_log("✅ Subject deleted: ID=$subject_id");
+                error_log("Subject deleted: ID=$subject_id");
                 return [
                     'status' => 'success',
                     'message' => 'ลบวิชาสำเร็จ',
@@ -699,12 +690,12 @@ function deleteSubject() {
             $stmt->close();
             $conn->close();
             
-            error_log("❌ Error deleting subject: " . $error);
+            error_log("Error deleting subject: " . $error);
             return handleError('เกิดข้อผิดพลาดในการลบวิชา: ' . $error);
         }
         
     } catch (Exception $e) {
-        error_log("❌ Exception in deleteSubject: " . $e->getMessage());
+        error_log("Exception in deleteSubject: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการลบวิชา: ' . $e->getMessage());
     }
 }
@@ -728,7 +719,7 @@ function addSchedule() {
             return handleError('ไม่สามารถอ่านข้อมูล JSON ได้: ' . $json_error);
         }
 
-        error_log("📝 AddSchedule input data: " . json_encode($data));
+        error_log("AddSchedule input data: " . json_encode($data));
         
         // ตรวจสอบ session
         $auth_user_id = $_SESSION['user_id'] ?? null;
@@ -831,7 +822,7 @@ function addSchedule() {
             $stmt = $conn->prepare($insert_sql);
             if (!$stmt) {
                 $conn->close();
-                error_log("❌ Prepare failed: " . $conn->error);
+                error_log("Prepare failed: " . $conn->error);
                 return handleError('เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL: ' . $conn->error);
             }
             $stmt->bind_param("iiiisiiiiiiii", 
@@ -854,36 +845,36 @@ function addSchedule() {
         $stmt = $conn->prepare($insert_sql);
         if (!$stmt) {
             $conn->close();
-            error_log("❌ Prepare failed: " . $conn->error);
+            error_log("Prepare failed: " . $conn->error);
             return handleError('เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL: ' . $conn->error);
         }
         
         // Bind parameters
         $stmt->bind_param("iiiisiiiiiiii", 
-            $academic_year_id,      // i
-            $user_id,              // i
-            $subject_id,           // i
-            $classroom_id,         // i
-            $day_of_week,          // s
-            $year_level_id,        // i
-            $start_time_slot_id,   // i
-            $end_time_slot_id,     // i
-            $auth_user_id,         // i
-            $co_user_id,           // i
-            $co_user_id_2,         // i
-            $max_teachers,         // i
-            $current_teachers      // i
+            $academic_year_id,     
+            $user_id,              
+            $subject_id,          
+            $classroom_id,        
+            $day_of_week,         
+            $year_level_id,       
+            $start_time_slot_id,  
+            $end_time_slot_id,    
+            $auth_user_id,        
+            $co_user_id,          
+            $co_user_id_2,        
+            $max_teachers,        
+            $current_teachers     
         );
 }
 
-        error_log("💾 Executing SQL with teachers: main=$user_id, co1=$co_user_id, co2=$co_user_id_2");
+        error_log("Executing SQL with teachers: main=$user_id, co1=$co_user_id, co2=$co_user_id_2");
 
         if ($stmt->execute()) {
             $schedule_id = $conn->insert_id;
             $stmt->close();
             $conn->close();
             $teacher_info = $current_teachers > 1 ? " (อาจารย์ $current_teachers คน)" : "";
-            error_log("✅ Schedule added successfully: ID=$schedule_id with $current_teachers teachers");
+            error_log("Schedule added successfully: ID=$schedule_id with $current_teachers teachers");
             return [
                 'status' => 'success',
                 'message' => 'เพิ่มตารางสอนสำเร็จ' . $teacher_info,
@@ -894,13 +885,13 @@ function addSchedule() {
             $error = $stmt->error;
             $stmt->close();
             $conn->close();
-            error_log("❌ Error executing addSchedule: " . $error);
+            error_log("Error executing addSchedule: " . $error);
             return handleError('เกิดข้อผิดพลาดในการบันทึกตารางสอน: ' . $error);
         }
 
     } catch (Exception $e) {
-        error_log("❌ Exception in addSchedule: " . $e->getMessage());
-        error_log("❌ Stack trace: " . $e->getTraceAsString());
+        error_log("Exception in addSchedule: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         return handleError('เกิดข้อผิดพลาดในการเพิ่มตารางสอน: ' . $e->getMessage());
     }
 }
@@ -953,7 +944,7 @@ function checkAllTeacherConflicts($conn, $teacher_ids, $academic_year_id, $day_o
         
         // สร้าง parameters array
         $params = [];
-        $types = "is"; // academic_year_id (i), day_of_week (s)
+        $types = "is";
         
         $params[] = $academic_year_id;
         $params[] = $day_of_week;
@@ -966,11 +957,10 @@ function checkAllTeacherConflicts($conn, $teacher_ids, $academic_year_id, $day_o
             }
         }
         
-        // เพิ่ม time slot parameters (6 ตัว)
         $time_params = [
-            $start_time_slot_id, $start_time_slot_id,  // condition 1
-            $end_time_slot_id, $end_time_slot_id,      // condition 2
-            $start_time_slot_id, $end_time_slot_id     // condition 3
+            $start_time_slot_id, $start_time_slot_id,  
+            $end_time_slot_id, $end_time_slot_id,     
+            $start_time_slot_id, $end_time_slot_id  
         ];
         
         foreach ($time_params as $time_param) {
@@ -1065,17 +1055,17 @@ function checkClassroomConflict($conn, $academic_year_id, $classroom_id, $day_of
         if ($exclude_schedule_id > 0) {
             $stmt->bind_param("iisiiiiiii", 
                 $academic_year_id, $classroom_id, $day_of_week,
-                $start_time_slot_id, $start_time_slot_id,  // สำหรับ condition 1
-                $end_time_slot_id, $end_time_slot_id,      // สำหรับ condition 2
-                $start_time_slot_id, $end_time_slot_id,    // สำหรับ condition 3
+                $start_time_slot_id, $start_time_slot_id,  
+                $end_time_slot_id, $end_time_slot_id,      
+                $start_time_slot_id, $end_time_slot_id,    
                 $exclude_schedule_id
             );
         } else {
             $stmt->bind_param("iisiiiiii", 
                 $academic_year_id, $classroom_id, $day_of_week,
-                $start_time_slot_id, $start_time_slot_id,  // สำหรับ condition 1
-                $end_time_slot_id, $end_time_slot_id,      // สำหรับ condition 2
-                $start_time_slot_id, $end_time_slot_id     // สำหรับ condition 3
+                $start_time_slot_id, $start_time_slot_id,  
+                $end_time_slot_id, $end_time_slot_id,      
+                $start_time_slot_id, $end_time_slot_id     
             );
         }
         
@@ -1145,17 +1135,17 @@ function checkYearLevelConflict($conn, $academic_year_id, $year_level_id, $day_o
         if ($exclude_schedule_id > 0) {
             $stmt->bind_param("iisiiiiiii", 
                 $academic_year_id, $year_level_id, $day_of_week,
-                $start_time_slot_id, $start_time_slot_id,  // สำหรับ condition 1
-                $end_time_slot_id, $end_time_slot_id,      // สำหรับ condition 2
-                $start_time_slot_id, $end_time_slot_id,    // สำหรับ condition 3
+                $start_time_slot_id, $start_time_slot_id,  
+                $end_time_slot_id, $end_time_slot_id,      
+                $start_time_slot_id, $end_time_slot_id,    
                 $exclude_schedule_id
             );
         } else {
             $stmt->bind_param("iisiiiiii", 
                 $academic_year_id, $year_level_id, $day_of_week,
-                $start_time_slot_id, $start_time_slot_id,  // สำหรับ condition 1
-                $end_time_slot_id, $end_time_slot_id,      // สำหรับ condition 2
-                $start_time_slot_id, $end_time_slot_id     // สำหรับ condition 3
+                $start_time_slot_id, $start_time_slot_id,  
+                $end_time_slot_id, $end_time_slot_id,      
+                $start_time_slot_id, $end_time_slot_id     
             );
         }
         
@@ -1367,7 +1357,7 @@ function updateSchedule() {
             $conn->close();
             if ($affected_rows > 0) {
                 $teacher_info = $current_teachers > 1 ? " (อาจารย์ $current_teachers คน)" : "";
-                error_log("✅ Schedule updated successfully: ID=$schedule_id by user=$auth_user_id with $current_teachers teachers");
+                error_log("Schedule updated successfully: ID=$schedule_id by user=$auth_user_id with $current_teachers teachers");
                 return [
                     'status' => 'success',
                     'message' => 'อัปเดตตารางสอนสำเร็จ' . $teacher_info,
@@ -1381,12 +1371,12 @@ function updateSchedule() {
             $error = $stmt->error;
             $stmt->close();
             $conn->close();
-            error_log("❌ Error updating schedule: " . $error);
+            error_log("Error updating schedule: " . $error);
             return handleError('เกิดข้อผิดพลาดในการอัปเดตตารางสอน: ' . $error);
         }
         
     } catch (Exception $e) {
-        error_log("❌ Exception in updateSchedule: " . $e->getMessage());
+        error_log("Exception in updateSchedule: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการอัปเดตตารางสอน: ' . $e->getMessage());
     }
 }
@@ -1458,7 +1448,7 @@ function deleteSchedule() {
             $conn->close();
             
             if ($affected_rows > 0) {
-                error_log("✅ Schedule deleted successfully: ID=$schedule_id by user=$auth_user_id");
+                error_log("Schedule deleted successfully: ID=$schedule_id by user=$auth_user_id");
                 
                 $is_external = intval($schedule_data['is_external_subject']);
                 $message = $is_external ? 'ลบตารางสอนวิชานอกสาขาสำเร็จ' : 'ลบตารางสอนสำเร็จ';
@@ -1478,12 +1468,12 @@ function deleteSchedule() {
             $stmt->close();
             $conn->close();
             
-            error_log("❌ Error deleting schedule: " . $error);
+            error_log("Error deleting schedule: " . $error);
             return handleError('เกิดข้อผิดพลาดในการลบตารางสอน: ' . $error);
         }
         
     } catch (Exception $e) {
-        error_log("❌ Exception in deleteSchedule: " . $e->getMessage());
+        error_log("Exception in deleteSchedule: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการลบตารางสอน: ' . $e->getMessage());
     }
 }
@@ -1555,7 +1545,7 @@ function forceDeleteSchedule() {
         $conn->commit();
         $conn->close();
         
-        error_log("✅ Force delete completed: Schedule=$scheduleDeleted, Sessions=$sessionsDeleted, Compensations=$compensationDeleted");
+        error_log("Force delete completed: Schedule=$scheduleDeleted, Sessions=$sessionsDeleted, Compensations=$compensationDeleted");
         
         $subject_type = $is_external ? 'วิชานอกสาขา' : 'วิชาในสาขา';
         $message = "ลบตารางสอน{$subject_type}และข้อมูลที่เกี่ยวข้องสำเร็จ\n- บันทึกการเรียน: $sessionsDeleted รายการ\n- บันทึกการชดเชย: $compensationDeleted รายการ";
@@ -1580,7 +1570,7 @@ function forceDeleteSchedule() {
             $conn->close();
         }
         
-        error_log("❌ Error in force delete: " . $e->getMessage());
+        error_log("Error in force delete: " . $e->getMessage());
         return handleError('เกิดข้อผิดพลาดในการลบแบบบังคับ: ' . $e->getMessage());
     }
 }

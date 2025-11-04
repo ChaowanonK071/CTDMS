@@ -1,8 +1,6 @@
 <?php
 /**
  * API สำหรับจัดการปีการศึกษาโดยตรง - Fixed Version
- * ไฟล์: /api/api_academic_year_direct.php
- * เวอร์ชัน: 1.2 - แก้ไขปัญหา HTTP 400 และ connection
  */
 
 // ตั้งค่าการแสดงผล error และ output buffering

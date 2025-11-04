@@ -44,8 +44,8 @@ function createOrUpdateUser($userData) {
         $firstName = $nameParts[0] ?? '';
         $lastName = $nameParts[1] ?? '';
         
-        // กำหนด user_type จากข้อมูล eLogin (เฉพาะกรณีผู้ใช้ใหม่)
-        $userType = 'teacher'; // default
+        // กำหนด user_type จากข้อมูล eLogin
+        $userType = 'teacher';
         
         if ($existingUser) {
             // *** ใช้ user_type จากฐานข้อมูลสำหรับผู้ใช้ที่มีอยู่แล้ว ***
@@ -80,7 +80,7 @@ function createOrUpdateUser($userData) {
             $getTitle->execute([$existingUser['user_id']]);
             $dbTitle = $getTitle->fetchColumn();
 
-            // อัพเดทข้อมูลผู้ใช้ที่มีอยู่ (ไม่เปลี่ยน title ถ้ามีอยู่แล้ว)
+            // อัพเดทข้อมูลผู้ใช้ที่มีอยู่
             $updateUser = $conn->prepare("
                 UPDATE users SET
                     name = ?,
@@ -169,7 +169,7 @@ function callELoginAPI($username, $password) {
     ]);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // สำหรับ development
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

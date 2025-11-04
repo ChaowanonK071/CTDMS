@@ -1,10 +1,4 @@
 <?php
-/**
- * Fixed Google Calendar Token Refresh Implementation - Final Version
- * ไฟล์: /api/calendar/token_refresh.php
- * แก้ไขให้ refresh token ทำงานจริงๆ และเพิ่ม validate action
- */
-
 // Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -204,7 +198,7 @@ function getTokenExpiryStatusAdvanced($user_id) {
 }
 
 /**
- * ฟังก์ชัน Refresh Google Access Token ที่ทำงานจริง (Final Version)
+ * ฟังก์ชัน Refresh Google Access Token ที่ทำงานจริง 
  */
 function performActualTokenRefresh($user_id, $forceRefresh = false) {
     try {
@@ -251,7 +245,7 @@ function performActualTokenRefresh($user_id, $forceRefresh = false) {
         
         error_log("Found refresh token for user $user_id, proceeding with refresh...");
         
-        // ตรวจสอบว่าต้อง refresh หรือไม่ (ถ้าไม่ force)
+        // ตรวจสอบว่าต้อง refresh หรือไม่ 
         if (!$forceRefresh && $auth['token_expiry']) {
             $expiry_time = strtotime($auth['token_expiry']);
             $current_time = time();
@@ -688,7 +682,7 @@ try {
                 break;
                 
             case 'validate':
-                // GET validate - ตรวจสอบ Token (ใหม่)
+                // GET validate - ตรวจสอบ Token 
                 error_log("=== GET VALIDATE TOKEN REQUEST for user $user_id ===");
                 
                 $validation = validateRefreshedTokenEnhanced($user_id);
@@ -815,7 +809,7 @@ try {
         switch ($action) {
             case 'refresh':
                 // POST Refresh Access Token - ใช้ฟังก์ชันที่ทำงานจริง
-                $forceRefresh = $input['force'] ?? true; // Default เป็น force refresh
+                $forceRefresh = $input['force'] ?? true;
                 
                 error_log("=== POST REFRESH TOKEN REQUEST for user $user_id ===");
                 error_log("Force refresh: " . ($forceRefresh ? 'true' : 'false'));
@@ -851,7 +845,7 @@ try {
                 break;
                 
             case 'validate':
-                // POST validate - ตรวจสอบ Token (ใหม่)
+                // POST validate - ตรวจสอบ Token 
                 error_log("=== POST VALIDATE TOKEN REQUEST for user $user_id ===");
                 
                 $validation = validateRefreshedTokenEnhanced($user_id);

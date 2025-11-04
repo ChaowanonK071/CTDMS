@@ -20,15 +20,16 @@ $user_type = $_SESSION['user_type'] ?? '';
     },
   });
 </script>
+<link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 <div class="sidebar" data-background-color="dark">
   <div class="sidebar-logo">
     <div class="logo-header" data-background-color="dark">
-      <a href="../index.php" class="logo">
-        <img
-          src="../img/kaiadmin/logo_light.svg"
-          alt="navbar brand"
-          class="navbar-brand"
-          height="20" />
+      <!-- <a href="../index.php" class="logo">
+        <img src="../img/kaiadmin/logo_light.svg" alt="navbar brand" class="navbar-brand" height="20" />
+      </a> -->
+      <a href="../index.php" class="logo" style="color: #ffffff; font-size: 25px;">
+        <img src="../img/coe/CoE-LOGO.png" alt="navbar brand" class="navbar-brand" height="50" />
+        COEPUTER
       </a>
       <div class="nav-toggle">
         <button class="btn btn-toggle toggle-sidebar">

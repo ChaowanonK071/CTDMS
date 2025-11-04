@@ -10,7 +10,7 @@ $userData = getUserData();
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>จัดการปีการศึกษาและวันหยุด - Teaching Schedule Management System</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
-    <link rel="icon" href="../img/kaiadmin/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -720,8 +720,6 @@ let apiHolidays = [];
 let currentSelectedAcademicYearId = null;
 let holidayFilter = 'all';
 
-console.log('🎓 Academic Year & Holiday Management System v2.1 - Improved API Integration');
-
 // ========================================
 // ฟังก์ชันช่วยเหลือพื้นฐาน
 // ========================================
@@ -818,9 +816,7 @@ function getHolidayTypeBadge(type) {
 async function callAPI(url, params = {}, retryCount = 0) {
     const maxRetries = 2;
     
-    try {
-        console.log(`🔄 API Call: ${url}`, params);
-        
+    try {        
         const formData = new FormData();
         for (const [key, value] of Object.entries(params)) {
             if (value !== null && value !== undefined) {
@@ -837,12 +833,10 @@ async function callAPI(url, params = {}, retryCount = 0) {
             }
         });
 
-        console.log(`📡 Response status: ${response.status} ${response.statusText}`);
-
         if (!response.ok) {
             // อ่าน response body เพื่อดู error message
             const errorText = await response.text();
-            console.error('❌ Response error text:', errorText);
+            console.error('Response error text:', errorText);
             
             let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
             
@@ -861,7 +855,6 @@ async function callAPI(url, params = {}, retryCount = 0) {
         }
 
         const text = await response.text();
-        console.log(`📥 API Response: ${url}`, text.substring(0, 200) + '...');
         
         let data;
         try {
@@ -880,11 +873,9 @@ async function callAPI(url, params = {}, retryCount = 0) {
             }
         }
 
-        console.log(`✅ API Success: ${url}`);
         return data;
 
     } catch (error) {
-        console.error(`❌ API Error: ${url}`, error);
         
         // Retry logic for network errors
         if (retryCount < maxRetries && (
@@ -892,7 +883,6 @@ async function callAPI(url, params = {}, retryCount = 0) {
             error.message.includes('network') ||
             error.message.includes('timeout')
         )) {
-            console.log(`🔄 Retrying API call (${retryCount + 1}/${maxRetries})`);
             await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
             return callAPI(url, params, retryCount + 1);
         }
@@ -922,7 +912,6 @@ async function checkApiStatus() {
                 statusIndicator.className = 'api-status-indicator online';
                 statusText.textContent = 'เชื่อมต่อ API สำเร็จ';
             }
-            console.log('✅ API Status: Online');
         } else {
             throw new Error(data.message || 'API ไม่พร้อมใช้งาน');
         }
@@ -932,7 +921,7 @@ async function checkApiStatus() {
             statusIndicator.className = 'api-status-indicator offline';
             statusText.textContent = 'API ไม่พร้อมใช้งาน';
         }
-        console.error('❌ API Status Check Error:', error);
+        console.error('API Status Check Error:', error);
     }
 }
 
@@ -942,7 +931,6 @@ async function checkApiStatus() {
 
 async function loadAcademicYears() {
     try {
-        console.log('📚 Loading academic years...');
         
         const data = await callAPI(API_CONFIG.academicYear, { action: 'get_academic_years' });
         
@@ -952,11 +940,9 @@ async function loadAcademicYears() {
             updateAcademicYearDropdowns(academicYears);
             updateStats();
             
-            console.log('✅ Academic years loaded:', academicYears.length, 'items');
         }
         
     } catch (error) {
-        console.error('❌ Error loading academic years:', error);
         const container = document.getElementById('academicYearsContainer');
         if (container) {
             container.innerHTML = `
@@ -1158,7 +1144,6 @@ async function deleteAcademicYear(academicYearId) {
 
 async function loadAllHolidays(academicYearId = null) {
     try {
-        console.log('📅 Loading all holidays...');
         
         const params = { action: 'get_all_holidays' };
         if (academicYearId) {
@@ -1176,11 +1161,10 @@ async function loadAllHolidays(academicYearId = null) {
             updateHolidayStats();
             updateUpcomingHolidays();
             
-            console.log('✅ Holidays loaded:', allHolidays.length, 'total holidays');
         }
         
     } catch (error) {
-        console.error('❌ Error loading holidays:', error);
+        console.error('Error loading holidays:', error);
         const tbody = document.getElementById('allHolidaysTableBody');
         if (tbody) {
             tbody.innerHTML = `
@@ -1221,12 +1205,6 @@ async function deleteHolidayFromTable(holidayId) {
             throw new Error('รหัสวันหยุดไม่ถูกต้อง');
         }
         
-        console.log('🗑️ Deleting holiday:', {
-            holidayId: numericHolidayId,
-            holidayName: holiday.holiday_name,
-            isCustom: holiday.is_custom
-        });
-        
         const data = await callAPI(API_CONFIG.holidayManagement, {
             action: 'delete_holiday',
             holiday_id: numericHolidayId
@@ -1253,12 +1231,10 @@ async function deleteHolidayFromTable(holidayId) {
             updateUpcomingHolidays();
             updateStats();
             
-            console.log('✅ Holiday deleted successfully');
         }
         
     } catch (error) {
         hideLoading();
-        console.error('❌ Delete holiday error:', error);
         
         // แสดง error message ที่ละเอียดขึ้น
         let errorMessage = 'เกิดข้อผิดพลาดในการลบวันหยุด';
@@ -1940,11 +1916,8 @@ function updateStats() {
 // ========================================
 
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🎓 Academic Year & Holiday Management System v2.1 - Improved API Integration Starting...');
     
     try {
-        // ขั้นตอนที่ 1: ผูก event listener กับฟอร์ม
-        console.log('🔄 Step 1: Bind event listeners');
         
         const academicYearForm = document.getElementById('academicYearForm');
         if (academicYearForm) {
@@ -1984,10 +1957,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 updateStats();
             });
         }
-        
-        // ขั้นตอนที่ 2: ตั้งค่า UI components
-        console.log('🔄 Step 2: Setup UI components');
-        
+
         setupFilters();
         
         // ตั้งค่าวันที่เริ่มต้น
@@ -2005,16 +1975,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (academicYearInput) {
             academicYearInput.value = currentThaiYear;
         }
-        
-        // ขั้นตอนที่ 3: โหลดข้อมูลเริ่มต้น
-        console.log('🔄 Step 3: Load initial data');
+
         
         await loadAcademicYears();
         await loadAllHolidays();
         await checkApiStatus();
-        
-        // ขั้นตอนที่ 4: ตั้งค่า keyboard shortcuts
-        console.log('🔄 Step 4: Setup keyboard shortcuts');
         
         document.addEventListener('keydown', function(e) {
             // Ctrl+R: Refresh data
@@ -2046,9 +2011,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
         
-        // ขั้นตอนที่ 5: ตั้งค่า auto-refresh
-        console.log('🔄 Step 5: Setup auto-refresh');
-        
         // Auto-refresh API status every 5 minutes
         setInterval(checkApiStatus, 5 * 60 * 1000);
         
@@ -2061,23 +2023,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }, 30 * 60 * 1000);
         
-        console.log('✅ Academic Year & Holiday Management System v2.1 Ready!');
-        console.log('💡 Available commands:');
-        console.log('- Ctrl+R: Refresh all data');
-        console.log('- Ctrl+F: Focus on search');
-        console.log('- Ctrl+A: Fetch holidays from API');
-        console.log('- Escape: Close modals');
-        
         // แสดงข้อความต้อนรับ
         setTimeout(() => {
             const apiStatusText = document.getElementById('apiStatusText');
             if (apiStatusText && apiStatusText.textContent.includes('เชื่อมต่อ API สำเร็จ')) {
-                console.log('🎉 System fully loaded with improved API integration!');
             }
         }, 2000);
         
     } catch (error) {
-        console.error('❌ Error initializing system:', error);
+        console.error('Error initializing system:', error);
         showError('เกิดข้อผิดพลาดในการเริ่มต้นระบบ: ' + error.message);
     }
 });
@@ -2171,9 +2125,6 @@ window.systemInfo = {
     features: window.academicYearManagement?.features || [],
     apis: API_CONFIG
 };
-
-console.log('🎉 Academic Year & Holiday Management System v2.1 - Complete with Improved API Integration!');
-console.log('🔧 Debug interface available at: window.academicYearManagement');
     </script>
 </body>
 </html>

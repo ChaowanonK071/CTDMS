@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RMUTSV Teaching Schedule System - Login</title>
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
     <style>
         * {
             margin: 0;
@@ -565,7 +566,6 @@ class GoogleCalendarTokenManager {
         const mergedOptions = { ...defaultOptions, ...options };
 
         try {
-            console.log(`🌐 Calling API: ${url}`);
             
             const response = await fetch(url, mergedOptions);
             
@@ -593,8 +593,6 @@ class GoogleCalendarTokenManager {
             }
 
             const data = JSON.parse(responseText);
-            console.log(`API Response from ${url}:`, data);
-            
             return data;
 
         } catch (error) {
@@ -614,18 +612,7 @@ class GoogleCalendarTokenManager {
         if (this.isInitialized) return true;
 
         try {
-            console.log('Initializing Google Calendar Token Manager...');
-            
             const testResult = await this.safeFetch(GOOGLE_CALENDAR_CHECK_URL);
-            
-            if (testResult.status !== 'error') {
-                this.isInitialized = true;
-                console.log('Google Calendar API is accessible');
-                return true;
-            } else {
-                console.warn('Google Calendar API has issues:', testResult.message);
-                return false;
-            }
         } catch (error) {
             console.error('Failed to initialize Google Calendar Token Manager:', error);
             return false;
@@ -667,7 +654,6 @@ class GoogleCalendarTokenManager {
     // Enhanced Refresh Token (Fixed version)
     async refreshToken(force = true) {
         if (this.refreshInProgress) {
-            console.log('Refresh already in progress, waiting...');
             
             let attempts = 0;
             while (this.refreshInProgress && attempts < 30) {
@@ -680,7 +666,6 @@ class GoogleCalendarTokenManager {
             }
             
             if (this.lastRefreshTime && Date.now() - this.lastRefreshTime < 5000) {
-                console.log('Token was recently refreshed, skipping');
                 return { success: true, message: 'Token ถูก refresh เรียบร้อยแล้ว' };
             }
         }
@@ -688,7 +673,6 @@ class GoogleCalendarTokenManager {
         this.refreshInProgress = true;
         
         try {
-            console.log('Starting token refresh...');
             
             const data = await this.safeFetch(`${this.apiBaseUrl}/token_refresh.php`, {
                 method: "POST",
@@ -699,7 +683,6 @@ class GoogleCalendarTokenManager {
             });
             
             if (data.status === "success") {
-                console.log("Token refreshed successfully:", data.data);
                 this.lastRefreshTime = Date.now();
                 
                 if (data.data && data.data.success) {
@@ -728,14 +711,11 @@ class GoogleCalendarTokenManager {
 
     // ฟังก์ชัน Auto-refresh เมื่อ login (ใหม่)
     async autoRefreshOnLogin() {
-        try {
-            console.log('Auto-refresh on login started...');
-            
+        try {            
             const data = await this.safeFetch(`${this.apiBaseUrl}/token_refresh.php?action=auto_refresh_on_login`);
             
             if (data.status === "success") {
                 const autoRefreshData = data.data;
-                console.log("Auto-refresh result:", autoRefreshData);
                 
                 if (autoRefreshData.auto_refreshed) {
                     const refreshResult = autoRefreshData.refresh_result;
@@ -764,10 +744,8 @@ class GoogleCalendarTokenManager {
                     // ไม่ต้อง refresh
                     let message = autoRefreshData.message;
                     if (autoRefreshData.reason === 'no_google_auth') {
-                        console.log("ℹNo Google auth found");
                         return { success: true, refreshed: false, reason: 'no_google_auth' };
                     } else if (autoRefreshData.reason === 'token_still_valid') {
-                        console.log(`Token still valid (${autoRefreshData.time_to_expiry_hours} hours remaining)`);
                         showNotification(
                             `Google Calendar Token ยังใช้งานได้ (เหลืออีก ${autoRefreshData.time_to_expiry_hours} ชั่วโมง)`,
                             "info"
@@ -858,6 +836,10 @@ class GoogleCalendarTokenManager {
                         action_required: 'connect'
                     });
                 }, 2000);
+                
+                setTimeout(() => {
+                    try { connectGoogleCalendar(); } catch (e) { console.warn('Auto-connect failed', e); }
+                }, 3500);
             } else {
                 showNotification(`Refresh Token ไม่สำเร็จ: ${error.message}`, "error");
             }
@@ -900,9 +882,8 @@ class GoogleCalendarTokenManager {
             } catch (error) {
                 console.error("Auto check error:", error);
             }
-        }, 30 * 60 * 1000); // ทุก 30 นาที
+        }, 30 * 60 * 1000);
 
-        console.log('Auto token check started (every 30 minutes)');
     }
 
     // หยุดการตรวจสอบอัตโนมัติ
@@ -910,7 +891,6 @@ class GoogleCalendarTokenManager {
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
             this.checkInterval = null;
-            console.log('Auto token check stopped');
         }
     }
 
@@ -973,7 +953,6 @@ class GoogleCalendarTokenManager {
             });
             
             if (data.status === "success") {
-                console.log("Connection test successful:", data);
                 return { success: true, data: data };
             } else {
                 throw new Error(data.message || 'การทดสอบเชื่อมต่อไม่สำเร็จ');
@@ -1093,7 +1072,6 @@ async function checkGoogleCalendarStatus() {
         });
 
         const data = await tokenManager.safeFetch(GOOGLE_CALENDAR_CHECK_URL);
-        console.log('Google Calendar Status:', data);
         
         // ถ้าเชื่อมต่อแล้ว ให้ตรวจสอบ token status เพิ่มเติม
         if (data.has_google_auth && data.status !== 'error') {
@@ -1122,8 +1100,6 @@ function displayGoogleCalendarStatus(status) {
     let statusMessage = status.message || 'ไม่ทราบสถานะ';
     let actionButtons = '';
     let tokenStatusBadge = '';
-
-    console.log('Displaying Google Calendar Status:', status);
 
     if (status.status === 'checking') {
         statusClass = 'checking';
@@ -1251,8 +1227,6 @@ function displayGoogleCalendarStatus(status) {
         googleCalendarStatus.style.display = 'block';
     }
 
-    // Log สำหรับ debug
-    console.log(`Google Calendar Status displayed: ${statusClass} - ${statusMessage}`);
 }
 
 function connectGoogleCalendar() {
@@ -1277,12 +1251,11 @@ function connectGoogleCalendar() {
             return;
         }
         
-        showNotification("🔄 กำลังเปิดหน้าต่างเชื่อมต่อ Google Calendar...", "info");
+        showNotification("กำลังเปิดหน้าต่างเชื่อมต่อ Google Calendar...", "info");
         
         function checkIfPopupClosed() {
             try {
                 if (popup && popup.closed) {
-                    console.log("Google OAuth popup was closed manually");
                     cleanupPopupHandlers();
                     showNotification("การเชื่อมต่อถูกยกเลิก", "warning");
                     return true;
@@ -1303,12 +1276,11 @@ function connectGoogleCalendar() {
                 try {
                     popup.close();
                 } catch (e) {
-                    console.log("Cannot close popup due to CORS policy");
                 }
             }
             cleanupPopupHandlers();
             showNotification("การเชื่อมต่อใช้เวลานานเกินไป", "warning");
-        }, 300000); // 5 นาที
+        }, 300000);
         
         function handlePopupMessage(event) {
             const allowedOrigins = [
@@ -1324,7 +1296,6 @@ function connectGoogleCalendar() {
             
             if (event.data && event.data.type) {
                 if (event.data.type === "google_auth_success") {
-                    console.log("Google Auth Success:", event.data);
                     
                     cleanupPopupHandlers();
                     clearTimeout(popupTimeout);
@@ -1450,8 +1421,6 @@ async function loginWithElogin(username, password) {
         });
 
         const data = await response.json();
-        console.log('eLogin Response:', data);
-
         if (data.status === 'ok') {
             const userDataForSession = {
                 ...data,
@@ -1479,6 +1448,7 @@ async function loginWithElogin(username, password) {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     user_data: userDataForSession
                 })
@@ -1571,6 +1541,7 @@ async function loginWithAdmin(username, password) {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
+                credentials: 'include', 
                 body: JSON.stringify({
                     user_data: userDataForSession
                 })
@@ -1608,7 +1579,6 @@ async function loginWithAdmin(username, password) {
 async function loginWithEloginRetry(username, password, maxRetries = 2) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`eLogin attempt ${attempt}/${maxRetries}`);
             
             const result = await loginWithElogin(username, password);
             
@@ -1722,23 +1692,11 @@ async function handleLogin(loginFunction, buttonId) {
         
         // ===== เพิ่มส่วนใหม่: Auto-refresh Google Calendar Token เมื่อ login =====
         setTimeout(async () => {
-            console.log('Initializing Google Calendar Token Manager...');
             const initSuccess = await tokenManager.initialize();
             
             if (initSuccess) {
                 // ทำ auto-refresh ทันทีหลัง login
-                console.log('Performing auto-refresh on login...');
                 const autoRefreshResult = await tokenManager.autoRefreshOnLogin();
-                
-                if (autoRefreshResult.success) {
-                    if (autoRefreshResult.refreshed) {
-                        console.log('Auto-refresh completed successfully');
-                    } else {
-                        console.log('Auto-refresh not needed:', autoRefreshResult.reason);
-                    }
-                } else {
-                    console.warn('Auto-refresh failed:', autoRefreshResult.error);
-                }
                 
                 // อัพเดทสถานะใน UI
                 await checkGoogleCalendarStatus();
@@ -1972,17 +1930,11 @@ window.addEventListener('load', () => {
                 
                 // Start Google Calendar management สำหรับ existing session
                 setTimeout(async () => {
-                    console.log('Initializing Google Calendar Token Manager for existing session...');
                     const initSuccess = await tokenManager.initialize();
                     
                     if (initSuccess) {
                         // ทำ auto-refresh สำหรับ session เดิมด้วย
-                        console.log('Performing auto-refresh for existing session...');
                         const autoRefreshResult = await tokenManager.autoRefreshOnLogin();
-                        
-                        if (autoRefreshResult.success && autoRefreshResult.refreshed) {
-                            console.log('Auto-refresh completed for existing session');
-                        }
                         
                         await checkGoogleCalendarStatus();
                         tokenManager.startAutoCheck();
@@ -2024,8 +1976,6 @@ window.getCurrentUserSession = function() {
 // Export enhanced functions
 window.GoogleCalendarTokenManager = GoogleCalendarTokenManager;
 window.tokenManager = tokenManager;
-
-console.log("Enhanced Login Page with Auto-refresh Google Calendar Token Management loaded successfully!");
     </script>
 </body>
 </html>

@@ -182,7 +182,7 @@ function deleteGoogleCalendarEvent($session_id, $google_event_id) {
     
     try {
         if (!function_exists('deleteGoogleCalendarEvent')) {
-            error_log("⚠️ Google Calendar Integration not available for deletion");
+            error_log("Google Calendar Integration not available for deletion");
             return false;
         }
         
@@ -281,7 +281,7 @@ function getSession() {
 }
 
 /**
- * อัพเดท Class Session (อัปเดตเพื่อรองรับ Google Calendar)
+ * อัพเดท Class Session
  */
 function updateSession() {
     global $user_id;
@@ -332,7 +332,7 @@ function updateSession() {
             throw new Exception('ไม่พบข้อมูล Class Session หรือไม่มีสิทธิ์เข้าถึง');
         }
         
-        // ตรวจสอบการขัดแย้งของตารางเรียน (ถ้าเปลี่ยนวันที่หรือเวลา)
+        // ตรวจสอบการขัดแย้งของตารางเรียน
         $conflict_query = "
             SELECT COUNT(*) as count 
             FROM class_sessions cs
@@ -465,7 +465,7 @@ function getGoogleCalendarEventData($session_data) {
     ];
 }
 /**
- * ยกเลิก Class Session และสร้าง Compensation Log (อัปเดตเพื่อรองรับ Google Calendar)
+ * ยกเลิก Class Session และสร้าง Compensation Log
  */
 function cancelSession() {
     global $user_id;
@@ -720,7 +720,7 @@ function requestCancellation() {
         $conn->commit();
         $conn->close();
         
-        // ลบ Google Calendar Event ถ้ามี (ไม่ใช่ critical operation)
+        // ลบ Google Calendar Event
         $google_deletion_success = false;
         if (!empty($google_event_id)) {
             try {
@@ -730,7 +730,7 @@ function requestCancellation() {
             }
         }
         
-        // สร้างข้อความตอบกลับ - แก้ไขตรงนี้
+        // สร้างข้อความตอบกลับ
         $message = "ยกเลิกการเรียนการสอนเรียบร้อยแล้ว\n\n";
         $message .= "รายวิชา: {$session_data['subject_code']} - {$session_data['subject_name']}\n";
         $message .= "วันที่ยกเลิก: " . formatThaiDatePHP($cancellation_date) . "\n";

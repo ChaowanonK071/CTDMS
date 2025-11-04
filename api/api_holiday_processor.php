@@ -307,7 +307,7 @@ function fetchHolidaysAndProcess() {
     }
 }
 /**
- * ===== ฟังก์ชันแปลวันหยุดเป็นภาษาไทย (ย้ายมาจาก config.php) =====
+ * ===== ฟังก์ชันแปลวันหยุดเป็นภาษาไทย =====
  */
 
 if (!function_exists('translateHolidayToThai')) {
@@ -613,7 +613,7 @@ function fetchHolidaysFromCalendarific($year, $country = 'TH', $api_key = null) 
         ];
     }
     
-    error_log("✅ Calendarific API returned " . count($formatted_holidays) . " holidays for {$country} {$year}");
+    error_log("Calendarific API returned " . count($formatted_holidays) . " holidays for {$country} {$year}");
     
     return $formatted_holidays;
 }
@@ -629,7 +629,7 @@ function generateClassSessions() {
         $academic_year_id = $_POST['academic_year_id'] ?? null;
         $date_from = $_POST['date_from'] ?? null;
         $date_to = $_POST['date_to'] ?? null;
-        $send_to_google = $_POST['send_to_google'] ?? false; // ส่งไป Google Calendar
+        $send_to_google = $_POST['send_to_google'] ?? false;
         
         if (!$academic_year_id || !is_numeric($academic_year_id)) {
             processorJsonError('กรุณาระบุปีการศึกษาที่ถูกต้อง');
@@ -1183,7 +1183,6 @@ function sendSessionToGoogleCalendar($teacher_id, $google_auth, $schedule, $sess
             ];
         }
         
-        // อัปเดต Class Session ด้วย Google Event ID
         $update_sql = "UPDATE class_sessions 
                        SET google_event_id = ?, 
                            google_event_url = ?,

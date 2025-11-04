@@ -17,21 +17,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // ฟังก์ชันกำหนดประเภทผู้ใช้
 function determineUserType($userData) {
-    $userType = 'teacher'; // default
+    $userType = 'teacher';
     $isTemporaryAccess = false;
     
     // ถ้าเป็น admin login ให้ใช้ user_type จากฐานข้อมูล
     if (isset($userData['login_method']) && $userData['login_method'] === 'admin') {
         return [
-            'user_type' => $userData['user_type'], // จะเป็น 'admin' จากฐานข้อมูล
+            'user_type' => $userData['user_type'],
             'is_temporary_access' => false,
             'original_user_type' => $userData['user_type']
         ];
     }
-    
-    // *** สำหรับ eLogin ให้ตรวจสอบ user_type จากฐานข้อมูลก่อน ***
+
     if (isset($userData['user_type'])) {
-        // ใช้ user_type จากฐานข้อมูลที่ส่งมาจาก eLogin API
         $userType = $userData['user_type'];
         error_log("Using user_type from database via eLogin: " . $userType);
         
@@ -64,7 +62,6 @@ function determineUserType($userData) {
                 $userType = 'teacher';
             }
         } elseif ($userData['type'] === 'student') {
-            // ให้สิทธิ์ teacher ชั่วคราวแก่ student
             $userType = 'teacher';
             $isTemporaryAccess = true;
         }

@@ -19,15 +19,8 @@ $userData = getUserData();
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>จัดการข้อมูลห้องเรียน - Kaiadmin Bootstrap 5 Admin Dashboard</title>
-    <meta
-      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-      name="viewport"
-    />
-    <link
-      rel="icon"
-      href="../img/kaiadmin/favicon.ico"
-      type="image/x-icon"
-    />
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport"/>
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -258,21 +251,18 @@ $(document).ready(function() {
 function loadClassrooms() {
     // Debug: แสดง URL ที่จะเรียก
     const apiUrl = "../api/classroom_api.php?action=getAll";
-    console.log("Trying to load data from:", apiUrl);
     
     $.ajax({
         url: apiUrl,
         type: "GET",
         dataType: "json",
         success: function(response) {
-            console.log("Success response:", response);
             if (response.status === "success") {
                 classroomsData = response.data;
                 
                 // อัปเดตชื่อคอลัมน์จาก response ถ้ามี
                 if (response.debug_columns) {
                     columnNames = response.debug_columns;
-                    console.log('Updated column names:', columnNames);
                 }
                 
                 renderClassroomsTable();
@@ -376,7 +366,6 @@ function resetClassroomForm() {
 
 // ฟังก์ชันเรียกดูข้อมูลห้องเรียนเพื่อแก้ไข
 function editClassroom(classroomId) {
-    console.log('editClassroom called with ID:', classroomId);
     
     // หาข้อมูลห้องเรียนจาก array
     const classroom = classroomsData.find(item => {
@@ -395,13 +384,7 @@ function editClassroom(classroomId) {
     const idValue = classroom[columnNames.id] || classroom.classroom_id || classroom.id;
     const roomNumberValue = classroom[columnNames.room_number] || classroom.room_number;
     const buildingValue = classroom[columnNames.building] || classroom.building;
-    
-    console.log('Setting form values:', {
-        id: idValue,
-        room_number: roomNumberValue,
-        building: buildingValue
-    });
-    
+
     // กำหนดค่าให้กับฟอร์ม
     $("#classroom_id").val(idValue);
     $("#room_number").val(roomNumberValue);
@@ -410,8 +393,6 @@ function editClassroom(classroomId) {
     // กำหนดชื่อ Modal
     $("#classroomModalLabel").html('<span class="fw-mediumbold">แก้ไข</span><span class="fw-light">ห้องเรียน</span>');
     $("#classroomModal").modal("show");
-    
-    console.log('Modal opened');
 }
 
 // ฟังก์ชันตรวจสอบความถูกต้องของข้อมูล
@@ -452,8 +433,6 @@ function validateForm() {
 
 // ฟังก์ชันบันทึกข้อมูลห้องเรียนพร้อม Debug เต็มรูปแบบ
 function saveClassroom() {
-    console.log("=== Start saving classroom ===");
-    
     // ตรวจสอบข้อมูล
     if (!validateForm()) {
         $("#btnSaveClassroom").prop('disabled', false).text('บันทึก');
@@ -469,11 +448,6 @@ function saveClassroom() {
     // ถ้าเป็นการแก้ไข
     const classroomId = $("#classroom_id").val();
     const isUpdate = classroomId && parseInt(classroomId) > 0;
-    
-    console.log("=== Save Details ===");
-    console.log("Data to send:", data);
-    console.log("Is Update:", isUpdate);
-    console.log("Classroom ID:", classroomId);
     
     let apiUrl, method;
     
@@ -492,7 +466,6 @@ function saveClassroom() {
                 'X-HTTP-Method-Override': 'PUT'
             },
             success: function(response) {
-                console.log('Update response:', response);
                 $("#btnSaveClassroom").prop('disabled', false).text('บันทึก');
                 
                 if (response.status === 'success') {
@@ -517,7 +490,6 @@ function saveClassroom() {
             data: JSON.stringify(data),
             contentType: 'application/json',
             success: function(response) {
-                console.log('Create response:', response);
                 $("#btnSaveClassroom").prop('disabled', false).text('บันทึก');
                 
                 if (response.status === 'success') {
@@ -562,7 +534,6 @@ function handleSaveError(xhr, status, error) {
 // ฟังก์ชันลบข้อมูลห้องเรียน
 function deleteClassroom(classroomId) {
     const apiUrl = `../api/classroom_api.php?action=delete&id=${classroomId}`;
-    console.log("Deleting classroom ID:", classroomId);
     console.log("Delete URL:", apiUrl);
     
     $.ajax({
@@ -573,7 +544,6 @@ function deleteClassroom(classroomId) {
             'X-HTTP-Method-Override': 'DELETE'
         },
         success: function(response) {
-            console.log("Delete response:", response);
             if (response.status === "success") {
                 alert(response.message || 'ลบข้อมูลห้องเรียนเรียบร้อยแล้ว');
                 $("#deleteConfirmModal").modal("hide");

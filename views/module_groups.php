@@ -10,7 +10,7 @@ $userData = getUserData();
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>จัดการกลุ่มโมดูล - Kaiadmin Bootstrap 5 Admin Dashboard</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport"/>
-    <link rel="icon" href="../img/kaiadmin/favicon.ico" type="image/x-icon"/>
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
     <!-- CSS Files -->
@@ -105,6 +105,7 @@ $userData = getUserData();
                                             <th>ID</th>
                                             <th>ชื่อโมดูล</th>
                                             <th>รายละเอียด</th>
+                                            <th style="width:120px">จัดการ</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -320,48 +321,43 @@ function loadModuleGroups() {
 }
 
 // แสดงข้อมูลในตาราง
-function renderModuleGroupsTable() {
-    if (moduleGroupsTable) {
-        moduleGroupsTable.destroy();
+ function renderModuleGroupsTable() {
+        if (moduleGroupsTable) {
+            moduleGroupsTable.destroy();
+        }
+        const tableBody = $("#moduleGroupsTable tbody");
+        tableBody.empty();
+        moduleGroupsData.forEach(function(group) {
+            let displayExample = `${group.group_name ? group.group_name : "-"} ${getModuleName(group.module_id)}`;
+            tableBody.append(`
+                <tr>
+                    <td>${group.group_id}</td>
+                    <td>${group.group_name ? group.group_name : "-"}</td>
+                    <td>${getModuleName(group.module_id)}</td>
+                    <td>${getYearLevelsText(group.year_levels)}</td>
+                    <td><span class="text-primary">${displayExample}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-outline-primary btn-edit-group" data-id="${group.group_id}" title="แก้ไข">แก้ไข</button>
+                        </div>
+                    </td>
+                </tr>
+            `);
+        });
+        $(".btn-edit-group").click(function() {
+            const groupId = $(this).data("id");
+            editModuleGroup(groupId);
+        });
+        moduleGroupsTable = $("#moduleGroupsTable").DataTable({
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/th.json"
+            },
+            order: [[0, "asc"]],
+            columnDefs: [
+                { orderable: false, targets: [5] }
+            ]
+        });
     }
-    const tableBody = $("#moduleGroupsTable tbody");
-    tableBody.empty();
-    moduleGroupsData.forEach(function(group) {
-        let displayExample = `${group.group_name ? group.group_name : "-"} ${getModuleName(group.module_id)}`;
-        tableBody.append(`
-            <tr>
-                <td>${group.group_id}</td>
-                <td>${group.group_name ? group.group_name : "-"}</td>
-                <td>${getModuleName(group.module_id)}</td>
-                <td>${getYearLevelsText(group.year_levels)}</td>
-                <td><span class="text-primary">${displayExample}</span></td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline-primary btn-edit-group" data-id="${group.group_id}" title="แก้ไข">แก้ไข</button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-group" data-id="${group.group_id}" title="ลบ">ลบ</button>
-                    </div>
-                </td>
-            </tr>
-        `);
-    });
-    $(".btn-edit-group").click(function() {
-        const groupId = $(this).data("id");
-        editModuleGroup(groupId);
-    });
-    $(".btn-delete-group").click(function() {
-        currentGroupId = $(this).data("id");
-        $("#deleteModuleGroupConfirmModal").modal("show");
-    });
-    moduleGroupsTable = $("#moduleGroupsTable").DataTable({
-        language: {
-            url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/th.json"
-        },
-        order: [[0, "asc"]],
-        columnDefs: [
-            { orderable: false, targets: [5] }
-        ]
-    });
-}
 
 // รีเซ็ตฟอร์ม
 function resetModuleGroupForm() {
@@ -433,17 +429,37 @@ function saveModuleGroup() {
         group_name: $("#inputGroupName").val().trim()
     };
     const group_id = $("#group_id").val();
-    let url = "../api/year_level_api.php?action=create_module_group";
-    let method = "POST";
+
     if (group_id && group_id !== "0") {
-        // สำหรับการแก้ไข สามารถเพิ่ม endpoint update ได้ในอนาคต
-        alert("ยังไม่รองรับการแก้ไขกลุ่มโมดูล (เฉพาะเพิ่มใหม่และลบ)");
-        $("#btnSaveModuleGroup").prop('disabled', false).text('บันทึก');
+        // อัปเดตกลุ่ม (PUT)
+        data.group_id = parseInt(group_id);
+        $.ajax({
+            url: "../api/year_level_api.php?action=update_module_group",
+            type: "PUT",
+            dataType: "json",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function(response) {
+                $("#btnSaveModuleGroup").prop('disabled', false).text('บันทึก');
+                if (response.status === "success") {
+                    alert(response.message);
+                    $("#moduleGroupModal").modal("hide");
+                    loadModuleGroups();
+                } else {
+                    alert(response.message || "เกิดข้อผิดพลาด");
+                }
+            },
+            error: function(xhr) {
+                $("#btnSaveModuleGroup").prop('disabled', false).text('บันทึก');
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลกลุ่มโมดูล");
+            }
+        });
         return;
     }
+        
     $.ajax({
-        url: url,
-        type: method,
+        url: "../api/year_level_api.php?action=create_module_group",
+        type: "POST",
         dataType: "json",
         contentType: "application/json",
         data: JSON.stringify(data),
@@ -496,13 +512,23 @@ function saveModule() {
         $("#btnSaveModule").prop('disabled', false).text('บันทึก');
         return;
     }
+    const moduleId = $("#module_id").val();
     const data = {
         module_name: $("#module_name").val().trim(),
         description: $("#description").val().trim()
     };
-    const method = "POST";
+
+    let url = "../api/year_level_api.php?action=create_module";
+    let method = "POST";
+    if (moduleId && moduleId !== "0") {
+        // update
+        data.module_id = parseInt(moduleId);
+        method = "PUT";
+        url = "../api/year_level_api.php?action=update_module";
+    }
+
     $.ajax({
-        url: "../api/module_api.php",
+        url: url,
         type: method,
         dataType: "json",
         contentType: "application/json",
@@ -512,10 +538,11 @@ function saveModule() {
             if (response.status === "success") {
                 alert(response.message);
                 $("#moduleModal").modal("hide");
-                // reload modules for select
+                // reload modules for select and table
                 loadAllModulesForMap();
+                loadModulesTable();
             } else {
-                alert(response.message);
+                alert(response.message || "เกิดข้อผิดพลาด");
             }
         },
         error: function(xhr) {
@@ -538,6 +565,11 @@ function loadModulesTable() {
                         <td>${module.module_id}</td>
                         <td>${module.module_name}</td>
                         <td>${module.description ? module.description : ""}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline-primary btn-edit-module" data-id="${module.module_id}" title="แก้ไข">แก้ไข</button>
+                            </div>
+                        </td>
                     </tr>
                 `);
             });
@@ -550,10 +582,33 @@ function loadModulesTable() {
                 },
                 order: [[0, "asc"]],
                 columnDefs: [
-                    { orderable: false, targets: [] }
+                    { orderable: false, targets: [3] }
                 ]
             });
+            // attach edit handlers
+            $(".btn-edit-module").click(function() {
+                const id = $(this).data("id");
+                editModule(id);
+            });
         }
+    });
+}
+
+// 新: fetch module by id and open modal for edit
+function editModule(moduleId) {
+    $.getJSON("../api/year_level_api.php?action=get_module&id=" + moduleId, function(res) {
+        if (res.status === "success" && res.data) {
+            const module = res.data;
+            $("#module_id").val(module.module_id);
+            $("#module_name").val(module.module_name);
+            $("#description").val(module.description ? module.description : "");
+            $("#moduleModalLabel").html('<span class="fw-mediumbold">แก้ไข</span> <span class="fw-light">โมดูล</span>');
+            $("#moduleModal").modal("show");
+        } else {
+            alert("ไม่พบข้อมูลโมดูล");
+        }
+    }).fail(function() {
+        alert("เกิดข้อผิดพลาดในการโหลดข้อมูลโมดูล");
     });
 }
 

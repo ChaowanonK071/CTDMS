@@ -11,7 +11,6 @@ require_once 'config.php';
 // รับค่า HTTP method
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ตรวจสอบว่าเป็นคำขอ OPTIONS หรือไม่ (สำหรับ CORS preflight)
 if ($method === 'OPTIONS') {
     exit(0);
 }
@@ -124,7 +123,7 @@ function createSubject($data) {
         $stmt->execute();
         
         if ($stmt->rowCount() > 0) {
-            http_response_code(409); // Conflict
+            http_response_code(409);
             echo json_encode(['status' => 'error', 'message' => 'รหัสวิชาและประเภทนี้มีอยู่แล้ว']);
             return;
         }

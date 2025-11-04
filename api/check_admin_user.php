@@ -85,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             'admin_users' => $adminUsers
         ];
         
-        // เพิ่มคำแนะนำถ้าไม่มี admin user
         if (!$hasAdminUser) {
             $result['suggestions'] = [
                 'ไม่พบผู้ใช้ประเภท admin ในฐานข้อมูล',

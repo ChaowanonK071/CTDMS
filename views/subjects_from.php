@@ -9,17 +9,9 @@ $userData = getUserData();
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>จัดการข้อมูลวิชา - Kaiadmin Bootstrap 5 Admin Dashboard</title>
-    <meta
-      content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
-      name="viewport"
-    />
-    <link
-      rel="icon"
-      href="../img/kaiadmin/favicon.ico"
-      type="image/x-icon"
-    />
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport"/>
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
-    <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
 
     <!-- CSS Files -->
@@ -313,16 +305,13 @@ $(document).ready(function() {
 
 // ฟังก์ชันโหลดข้อมูลวิชา
 function loadSubjects() {
-    // Debug: แสดง URL ที่จะเรียก
     const apiUrl = "../api/subjects_api.php";
-    console.log("Trying to load data from:", apiUrl);
     
     $.ajax({
         url: apiUrl,
         type: "GET",
         dataType: "json",
         success: function(response) {
-            console.log("Success response:", response);
             if (response.status === "success") {
                 subjectsData = response.data;
                 renderSubjectsTable();
@@ -497,9 +486,7 @@ function validateForm() {
 }
 
 // ฟังก์ชันบันทึกข้อมูลวิชาพร้อม Debug เต็มรูปแบบ
-function saveSubject() {
-    console.log("=== Start saving subject ===");
-    
+function saveSubject() {    
     // ตรวจสอบข้อมูล
     if (!validateForm()) {
         $("#btnSaveSubject").prop('disabled', false).text('บันทึก');
@@ -522,13 +509,6 @@ function saveSubject() {
     // กำหนด method ตามการกระทำ (เพิ่มหรือแก้ไข)
     const method = data.subject_id ? "PUT" : "POST";
     const apiUrl = "../api/subjects_api.php";
-    
-    console.log("=== Save Details ===");
-    console.log("Data to send:", data);
-    console.log("Method:", method);
-    console.log("URL:", apiUrl);
-    console.log("JSON String:", JSON.stringify(data));
-    
     // ส่งข้อมูลไปยัง API
     $.ajax({
         url: apiUrl,

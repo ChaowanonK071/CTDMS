@@ -1,13 +1,7 @@
 <?php
-/**
- * Fixed Google Calendar Check API - Complete Version
- * ไฟล์: /api/calendar/google_calendar_check.php
- * แก้ไขการแสดงสถานะ Google Calendar ให้ถูกต้อง
- */
-
 // Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // ไม่แสดง error ใน response
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 // ป้องกัน output buffer และ error ที่อาจรบกวน JSON
@@ -172,7 +166,7 @@ function createGoogleAuthTableIfNeeded($conn) {
 }
 
 /**
- * ตรวจสอบสถานะ Google Calendar (แก้ไขแล้ว)
+ * ตรวจสอบสถานะ Google Calendar
  */
 function checkGoogleCalendarStatusFixed($user_id) {
     try {
@@ -389,7 +383,7 @@ function getGoogleCalendarSyncStats($conn, $user_id) {
             ];
         }
         
-        // นับข้อมูลจริงจากตาราง (ลบเงื่อนไข date filter ออกก่อนเพื่อดูข้อมูลทั้งหมด)
+        // นับข้อมูลจริงจากตาราง
         $stats_query = "
             SELECT 
                 COUNT(*) as total_all_sessions,
@@ -447,7 +441,7 @@ function getGoogleCalendarSyncStats($conn, $user_id) {
         
         return [
             'synced_count' => $synced_count,
-            'pending_count' => $total_pending, // pending + null
+            'pending_count' => $total_pending,
             'failed_count' => $failed_count,
             'total_count' => $total_count,
             'success_rate' => $success_rate,

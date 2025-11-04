@@ -22,6 +22,7 @@ $userData = getUserData();
     <title>จัดตารางสอนชดเชย</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
     <style>
         body {
             background-color: #f8f9fa;
@@ -915,9 +916,8 @@ $userData = getUserData();
             new bootstrap.Modal(document.getElementById('errorModal')).show();
         }
         
-        // ฟังก์ชันเรียก API - อัปเดตใหม่
+        // ฟังก์ชันเรียก API
         async function callAPI(action, data = {}) {
-            console.log('กำลังเรียก API:', action, data);
             
             const formData = new FormData();
             formData.append('action', action);
@@ -941,8 +941,6 @@ $userData = getUserData();
                 }
 
                 const result = await response.json();
-                console.log('ได้รับข้อมูล:', result);
-
                 if (!result.success) {
                     throw new Error(result.message || 'การเรียก API ไม่สำเร็จ');
                 }
@@ -959,13 +957,7 @@ $userData = getUserData();
             const urlParams = new URLSearchParams(window.location.search);
             const cancellationId = urlParams.get('id') || urlParams.get('cancellation_id');
             const academicYearId = urlParams.get('academic_year_id') || urlParams.get('academic_year');
-            
-            console.log('URL Parameters:', {
-                cancellationId,
-                academicYearId,
-                fullUrl: window.location.href
-            });
-            
+
             if (!cancellationId) {
                 showError('ไม่พบรหัสการยกเลิกเรียน กรุณาตรวจสอบ URL');
                 return;
@@ -1072,10 +1064,18 @@ $userData = getUserData();
         function displayCompensationInfo(data) {
             const compensationInfo = document.getElementById('compensationInfo');
 
+            // สร้างข้อมูลอาจารย์หลักและอาจารย์ร่วม
+            let teachersDisplay = `<span>${data.teacher_name || '-'}</span>`;
+            if (data.co_teacher_name) {
+                teachersDisplay += `<br><small class="text-muted">อาจารย์ร่วม: ${data.co_teacher_name}</small>`;
+            }
+            if (data.co_teacher_name_2) {
+                teachersDisplay += `<br><small class="text-muted">อาจารย์ร่วม: ${data.co_teacher_name_2}</small>`;
+            }
+
             // สร้างข้อมูลชั้นปี
             let classYearDisplay = '';
             if (data.is_module_subject == 1 && data.group_name) {
-                // กรณีวิชาโมดูล: แสดงชื่อกลุ่ม, โมดูล, และชั้นปีในกลุ่ม
                 classYearDisplay = `<span>${data.group_name || '-'} ${data.module_name || '-'}</span>`;
                 if (Array.isArray(data.year_levels_in_group) && data.year_levels_in_group.length > 0) {
                     classYearDisplay += `<br><span class="text-muted">ชั้นปีในกลุ่ม:</span><br>`;
@@ -1084,7 +1084,6 @@ $userData = getUserData();
                     ).join('<br>');
                 }
             } else {
-                // กรณีวิชาปกติ: แสดง department, class_year, curriculum
                 classYearDisplay = `
                     <span>${data.department || '-'}</span>
                     <span>${data.class_year || '-'}</span>
@@ -1097,7 +1096,7 @@ $userData = getUserData();
                     <h6 class="text-primary mb-2"><i class="fas fa-book"></i> ข้อมูลรายวิชา</h6>
                     <p class="mb-1"><strong>รหัสวิชา:</strong> ${data.subject_code || 'ไม่ระบุ'}</p>
                     <p class="mb-1"><strong>ชื่อวิชา:</strong> ${data.subject_name || 'ไม่ระบุ'}</p>
-                    <p class="mb-1"><strong>อาจารย์:</strong> ${data.teacher_name || 'ไม่ระบุ'}</p>
+                    <p class="mb-1"><strong>อาจารย์:</strong> ${teachersDisplay}</p>
                     <p class="mb-1"><strong>ชั้นปี:</strong> ${classYearDisplay}</p>
                 </div>
                 
@@ -1218,7 +1217,6 @@ $userData = getUserData();
         async function loadRoomAvailability() {
             const selectedDate = document.getElementById('makeupDate').value;
             const cancellationId = document.getElementById('cancellation_id').value;
-            console.log('loadRoomAvailability', {selectedDate, cancellationId});
             if (!selectedDate) {
                 document.getElementById('roomAvailabilityCard').style.display = 'none';
                 return;
@@ -1235,7 +1233,6 @@ $userData = getUserData();
                     date: selectedDate,
                     cancellation_id: document.getElementById('cancellation_id').value
                 });
-                console.log('API result:', result);
                 if (result.success && result.data) {
                     displayRoomAvailability(result.data);
                 } else {
@@ -1260,7 +1257,6 @@ $userData = getUserData();
         
         // ฟังก์ชันแสดงความพร้อมของห้องเรียน
         function displayRoomAvailability(roomsData) {
-            console.log('displayRoomAvailability', roomsData);
             document.getElementById('loadingSpinner').style.display = 'none';
             document.getElementById('availabilityLegend').style.display = 'flex';
             const roomsList = document.getElementById('roomsList');

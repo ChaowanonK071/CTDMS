@@ -28,6 +28,7 @@ function previewAutoScheduleSingle() {
                 ts.end_time_slot_id as original_end_slot,
                 ts.day_of_week as original_day,
                 ts.academic_year_id,
+                ts.user_id,
                 ts.is_module_subject,
                 ts.group_id,
                 s.subject_name,
@@ -37,6 +38,10 @@ function previewAutoScheduleSingle() {
                 yl.department,
                 yl.curriculum,
                 CONCAT(u.title, u.name, ' ', u.lastname) as teacher_name,
+                ts.co_user_id,
+                ts.co_user_id_2,
+                (SELECT CONCAT(u1.title, u1.name, ' ', u1.lastname) FROM users u1 WHERE u1.user_id = ts.co_user_id) as co_teacher_name,
+                (SELECT CONCAT(u2.title, u2.name, ' ', u2.lastname) FROM users u2 WHERE u2.user_id = ts.co_user_id_2) as co_teacher_name_2,
                 tstart.start_time as original_start_time,
                 tend.end_time as original_end_time
             FROM compensation_logs cl
@@ -74,99 +79,8 @@ function previewAutoScheduleSingle() {
             $stmt_yl->close();
         }
 
-        // ดึงช่วงวันที่ค้นหา
-        $academic_query = "SELECT start_date, end_date FROM academic_years WHERE academic_year_id = ?";
-        $stmt = $mysqli->prepare($academic_query);
-        $stmt->bind_param("i", $compensation['academic_year_id']);
-        $stmt->execute();
-        $academic = $stmt->get_result()->fetch_assoc();
-
-        $cancellation_date = $compensation['cancellation_date'] ?? date('Y-m-d');
-        $start_search_date = date('Y-m-d', strtotime($cancellation_date . ' +1 day'));
-        $end_search_date = $academic['end_date'];
-
-        $required_slots = $compensation['original_end_slot'] - $compensation['original_start_slot'] + 1;
-        $original_classroom_id = $compensation['original_classroom_id'] ?? null;
-
-        $found_schedule = null;
-        $strategy_used = null;
-
-        $current_date = new DateTime($start_search_date);
-        $end_date = new DateTime($end_search_date);
-
-        while ($current_date <= $end_date) {
-            $check_date = $current_date->format('Y-m-d');
-            $day_of_week = $current_date->format('w');
-            if ($day_of_week == 0 || $day_of_week == 6) {
-                $current_date->add(new DateInterval('P1D'));
-                continue;
-            }
-
-            // ใช้ getDetailedRoomAvailabilityArray เพื่อค้นหาห้องและ slot
-            $room_availability = getDetailedRoomAvailabilityArray($mysqli, $check_date, $cancellation_id);
-
-            // 1. พยายามหาช่วงเวลาว่างใน "ห้องเดิม" ก่อน
-            if ($original_classroom_id) {
-                foreach ($room_availability as $room_data) {
-                    if ($room_data['classroom']['classroom_id'] != $original_classroom_id) continue;
-                    if ($room_data['availability_status'] === 'holiday' || $room_data['availability_status'] === 'occupied') continue;
-
-                    $available_slots = array_column($room_data['available_slots'], 'slot_number');
-                    $slot_count = count($available_slots);
-                    for ($i = 0; $i <= $slot_count - $required_slots; $i++) {
-                        $slot_range = array_slice($available_slots, $i, $required_slots);
-                        $is_continuous = true;
-                        for ($j = 1; $j < count($slot_range); $j++) {
-                            if ($slot_range[$j] != $slot_range[$j-1] + 1) {
-                                $is_continuous = false;
-                                break;
-                            }
-                        }
-                        if ($is_continuous) {
-                            $found_schedule = [
-                                'date' => $check_date,
-                                'classroom_id' => $room_data['classroom']['classroom_id'],
-                                'start_slot_id' => $slot_range[0],
-                                'end_slot_id' => end($slot_range),
-                            ];
-                            $strategy_used = 'original_room_first';
-                            break 2;
-                        }
-                    }
-                }
-            }
-
-            // 2. ถ้าไม่เจอในห้องเดิม ให้หาห้องอื่น
-            foreach ($room_availability as $room_data) {
-                if ($original_classroom_id && $room_data['classroom']['classroom_id'] == $original_classroom_id) continue;
-                if ($room_data['availability_status'] === 'holiday' || $room_data['availability_status'] === 'occupied') continue;
-
-                $available_slots = array_column($room_data['available_slots'], 'slot_number');
-                $slot_count = count($available_slots);
-                for ($i = 0; $i <= $slot_count - $required_slots; $i++) {
-                    $slot_range = array_slice($available_slots, $i, $required_slots);
-                    $is_continuous = true;
-                    for ($j = 1; $j < count($slot_range); $j++) {
-                        if ($slot_range[$j] != $slot_range[$j-1] + 1) {
-                            $is_continuous = false;
-                            break;
-                        }
-                    }
-                    if ($is_continuous) {
-                        $found_schedule = [
-                            'date' => $check_date,
-                            'classroom_id' => $room_data['classroom']['classroom_id'],
-                            'start_slot_id' => $slot_range[0],
-                            'end_slot_id' => end($slot_range),
-                        ];
-                        $strategy_used = 'other_room';
-                        break 2;
-                    }
-                }
-            }
-
-            $current_date->add(new DateInterval('P1D'));
-        }
+        // ใช้ฟังก์ชันเดียวกับการลงข้อมูลจริง
+        $found_schedule = findSuitableScheduleWithConflictCheck($mysqli, $compensation);
 
         if (!$found_schedule) {
             jsonSuccess('Preview การจัดตารางอัตโนมัติ', [
@@ -174,6 +88,8 @@ function previewAutoScheduleSingle() {
                 'subject_code' => $compensation['subject_code'],
                 'subject_name' => $compensation['subject_name'],
                 'teacher_name' => $compensation['teacher_name'],
+                'co_teacher_name' => $compensation['co_teacher_name'],
+                'co_teacher_name_2' => $compensation['co_teacher_name_2'],
                 'class_year' => $compensation['class_year'],
                 'department' => $compensation['department'],
                 'curriculum' => $compensation['curriculum'],
@@ -181,6 +97,7 @@ function previewAutoScheduleSingle() {
                 'is_module_subject' => $compensation['is_module_subject'],
                 'group_id' => $compensation['group_id'],
                 'cancellation_date' => $compensation['cancellation_date'],
+                'cancellation_reason' => $compensation['reason'],
                 'original_schedule' => [
                     'day' => $compensation['original_day'],
                     'start_slot' => $compensation['original_start_slot'],
@@ -254,6 +171,8 @@ function previewAutoScheduleSingle() {
             'subject_code' => $compensation['subject_code'],
             'subject_name' => $compensation['subject_name'],
             'teacher_name' => $compensation['teacher_name'],
+            'co_teacher_name' => $compensation['co_teacher_name'],
+            'co_teacher_name_2' => $compensation['co_teacher_name_2'],
             'class_year' => $compensation['class_year'],
             'department' => $compensation['department'],
             'curriculum' => $compensation['curriculum'],
@@ -281,7 +200,7 @@ function previewAutoScheduleSingle() {
                 'room_number' => $room_data['room_number'],
                 'classroom_id' => $found_schedule['classroom_id']
             ],
-            'strategy_used' => $strategy_used,
+            'strategy_used' => $found_schedule['strategy_used'],
             'changes' => $changes,
             'conflicts' => $conflicts['conflicts'] ?? [],
             'has_conflicts' => $conflicts['has_conflict'] ?? false
@@ -630,6 +549,7 @@ function confirmManualSchedule() {
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
+
 /**
  * จัดตารางชดเชยอัตโนมัติทั้งหมด
  */
@@ -787,7 +707,6 @@ function autoScheduleAllCompensations() {
                     $stmt_yl->close();
                 }
 
-                // ใช้ findSuitableScheduleWithConflictCheck ซึ่งเรียก getDetailedRoomAvailabilityArray อยู่แล้ว
                 $suitable_schedule = findSuitableScheduleWithConflictCheck($mysqli, $compensation, $scheduled_slots);
 
                 if ($suitable_schedule) {
@@ -900,18 +819,18 @@ function autoScheduleAllCompensations() {
         $mysqli->commit();
 
         $message = "จัดตารางชดเชยอัตโนมัติเสร็จสิ้น";
-        $message .= "\n📋 ขอบเขต: {$scope_message}";
-        $message .= "\n📊 สถิติ: ทั้งหมด {$results['total']} รายการ";
-        $message .= "\n✅ สำเร็จ: {$results['successful']} รายการ";
-        $message .= "\n❌ ล้มเหลว: {$results['failed']} รายการ";
+        $message .= "\nขอบเขต: {$scope_message}";
+        $message .= "\nสถิติ: ทั้งหมด {$results['total']} รายการ";
+        $message .= "\nสำเร็จ: {$results['successful']} รายการ";
+        $message .= "\nล้มเหลว: {$results['failed']} รายการ";
 
         if ($results['successful'] > 0) {
-            $message .= "\n\n⏳ รายการที่จัดสำเร็จจะถูกส่งเข้าสู่ระบบอนุมัติ (สถานะ: รอยืนยัน)";
-            $message .= "\n📝 คุณสามารถตรวจสอบและยืนยันได้ในหน้าจัดการการชดเชย";
+            $message .= "\n\nรายการที่จัดสำเร็จจะถูกส่งเข้าสู่ระบบอนุมัติ (สถานะ: รอยืนยัน)";
+            $message .= "\nคุณสามารถตรวจสอบและยืนยันได้ในหน้าจัดการการชดเชย";
         }
 
         if ($results['failed'] > 0) {
-            $message .= "\n\n⚠️ รายการที่ล้มเหลวต้องจัดตารางด้วยตนเอง";
+            $message .= "\n\nรายการที่ล้มเหลวต้องจัดตารางด้วยตนเอง";
         }
 
         jsonSuccess($message, $results);
@@ -1056,8 +975,7 @@ function findSuitableScheduleWithConflictCheck($mysqli, $compensation, $already_
     $academic = $result->fetch_assoc();
     if (!$academic) return null;
 
-    $cancellation_date = $compensation['cancellation_date'] ?? date('Y-m-d');
-    $start_search_date = date('Y-m-d', strtotime($cancellation_date . ' +1 day'));
+    $start_search_date = $academic['start_date'];
     $end_search_date = $academic['end_date'];
 
     $teacher_id = $compensation['user_id'] ?? null;
@@ -1081,10 +999,7 @@ function findSuitableScheduleWithConflictCheck($mysqli, $compensation, $already_
     while ($current_date <= $end_date) {
         $check_date = $current_date->format('Y-m-d');
         $day_of_week = $current_date->format('w');
-        if ($day_of_week == 0 || $day_of_week == 6) {
-            $current_date->add(new DateInterval('P1D'));
-            continue;
-        }
+
 
         // ดึงข้อมูลความพร้อมห้องทั้งหมด
         $room_availability = getDetailedRoomAvailabilityArray($mysqli, $check_date, $compensation['cancellation_id']);
@@ -1158,12 +1073,12 @@ function findSuitableScheduleWithConflictCheck($mysqli, $compensation, $already_
     return null;
 }
 
-function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
+function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id, $academic_year_id = null)
 {
     $result = [];
 
-    // ดึงข้อมูลการชดเชยและ schedule_id
-    $yl_sql = "SELECT ts.schedule_id, ts.year_level_id, ts.user_id, ts.co_user_id, ts.co_user_id_2, ts.is_module_subject, ts.group_id
+    // ดึงข้อมูลการชดเชยและ schedule_id พร้อม academic_year_id
+    $yl_sql = "SELECT ts.schedule_id, ts.year_level_id, ts.user_id, ts.co_user_id, ts.co_user_id_2, ts.is_module_subject, ts.group_id, ts.academic_year_id
                FROM compensation_logs cl
                JOIN teaching_schedules ts ON cl.schedule_id = ts.schedule_id
                WHERE cl.cancellation_id = ?";
@@ -1178,6 +1093,13 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
     $co_user_id_2 = $yl_row['co_user_id_2'] ?? null;
     $is_module_subject = $yl_row['is_module_subject'] ?? 0;
     $group_id = $yl_row['group_id'] ?? null;
+    $schedule_academic_year_id = $yl_row['academic_year_id'] ?? null;
+    $yl_stmt->close();
+
+    // ถ้าไม่ส่ง academic_year_id ให้ใช้จาก schedule
+    if ($academic_year_id === null) {
+        $academic_year_id = $schedule_academic_year_id;
+    }
 
     // กรณีโมดูล: ดึง year_level_id ทั้งหมดในกลุ่ม
     $related_year_level_ids = [];
@@ -1201,6 +1123,7 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
     $holiday_stmt->execute();
     $holiday_result = $holiday_stmt->get_result();
     $holiday = $holiday_result->fetch_assoc();
+    $holiday_stmt->close();
 
     // ดึงข้อมูล time slots ทั้งหมด
     $timeslots_sql = "SELECT time_slot_id, slot_number, start_time, end_time FROM time_slots ORDER BY slot_number";
@@ -1211,6 +1134,7 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
     while ($row = $timeslots_result->fetch_assoc()) {
         $timeslots[] = $row;
     }
+    $timeslots_stmt->close();
 
     // ดึงข้อมูลห้องเรียนทั้งหมด
     $classrooms_sql = "SELECT classroom_id, room_number, building, capacity FROM classrooms ORDER BY room_number";
@@ -1221,12 +1145,20 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
     while ($row = $classrooms_result->fetch_assoc()) {
         $classrooms[] = $row;
     }
+    $classrooms_stmt->close();
 
     // เตรียม array อาจารย์ร่วม
     $teacher_ids = [];
     if ($teacher_id) $teacher_ids[] = $teacher_id;
     if ($co_user_id) $teacher_ids[] = $co_user_id;
     if ($co_user_id_2) $teacher_ids[] = $co_user_id_2;
+
+    // เตรียม prepared statements สำหรับตรวจสอบ compensation_logs (proposed และ makeup)
+    $proposed_sql = "SELECT COUNT(*) AS cnt FROM compensation_logs WHERE cancellation_id != ? AND proposed_makeup_date = ? AND proposed_makeup_classroom_id = ? AND status = 'รอยืนยัน' AND proposed_makeup_start_time_slot_id <= ? AND proposed_makeup_end_time_slot_id >= ?";
+    $stmt_proposed = $mysqli->prepare($proposed_sql);
+
+    $makeup_sql = "SELECT COUNT(*) AS cnt FROM compensation_logs WHERE cancellation_id != ? AND makeup_date = ? AND makeup_classroom_id = ? AND status = 'ดำเนินการแล้ว' AND makeup_start_time_slot_id <= ? AND makeup_end_time_slot_id >= ?";
+    $stmt_makeup = $mysqli->prepare($makeup_sql);
 
     foreach ($classrooms as $classroom) {
         $room_data = [
@@ -1242,31 +1174,36 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
 
             // 1. เช็คห้องว่างจาก class_sessions
             $sql_room = "SELECT COUNT(*) AS cnt
-                         FROM class_sessions
-                         WHERE actual_classroom_id = ?
-                         AND session_date = ?
-                         AND actual_start_time_slot_id <= ? AND actual_end_time_slot_id >= ?";
+                         FROM class_sessions cs
+                         JOIN teaching_schedules ts ON cs.schedule_id = ts.schedule_id
+                         WHERE cs.actual_classroom_id = ?
+                         AND cs.session_date = ?
+                         AND ts.academic_year_id = ?
+                         AND cs.actual_start_time_slot_id <= ? AND cs.actual_end_time_slot_id >= ?";
             $stmt_room = $mysqli->prepare($sql_room);
-            $stmt_room->bind_param("isii", $classroom['classroom_id'], $date, $slot['slot_number'], $slot['slot_number']);
+            $stmt_room->bind_param("isiii", $classroom['classroom_id'], $date, $academic_year_id, $slot['slot_number'], $slot['slot_number']);
             $stmt_room->execute();
             $room_busy = $stmt_room->get_result()->fetch_assoc();
+            $stmt_room->close();
             if ($room_busy['cnt'] > 0) {
                 $conflicts[] = 'ห้องมีการใช้งานใน class_sessions';
             }
 
-            // 2. เช็ค year_level_id ทั้งหมดในกลุ่ม (เฉพาะโมดูล)
+            // 2. เช็ค year_level_id ทั้งหมดในกลุ่ม 
             if (!empty($related_year_level_ids)) {
                 $in_year_levels = implode(',', array_map('intval', $related_year_level_ids));
                 $sql_year_multi = "SELECT COUNT(*) AS cnt
                                     FROM class_sessions cs
                                     JOIN teaching_schedules ts ON cs.schedule_id = ts.schedule_id
                                     WHERE ts.year_level_id IN ($in_year_levels)
+                                    AND ts.academic_year_id = ?
                                     AND cs.session_date = ?
                                     AND cs.actual_start_time_slot_id <= ? AND cs.actual_end_time_slot_id >= ?";
                 $stmt_year_multi = $mysqli->prepare($sql_year_multi);
-                $stmt_year_multi->bind_param("sii", $date, $slot['slot_number'], $slot['slot_number']);
+                $stmt_year_multi->bind_param("isii", $academic_year_id, $date, $slot['slot_number'], $slot['slot_number']);
                 $stmt_year_multi->execute();
                 $year_busy_multi = $stmt_year_multi->get_result()->fetch_assoc();
+                $stmt_year_multi->close();
                 if ($year_busy_multi['cnt'] > 0) {
                     $conflicts[] = 'ชั้นปีในกลุ่มมีการใช้งานใน class_sessions';
                 }
@@ -1278,14 +1215,34 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
                     FROM class_sessions cs
                     JOIN teaching_schedules ts ON cs.schedule_id = ts.schedule_id
                     WHERE (ts.user_id = ? OR ts.co_user_id = ? OR ts.co_user_id_2 = ?)
+                    AND ts.academic_year_id = ?
                     AND cs.session_date = ?
                     AND cs.actual_start_time_slot_id <= ? AND cs.actual_end_time_slot_id >= ?";
                 $stmt_teacher = $mysqli->prepare($sql_teacher);
-                $stmt_teacher->bind_param("iiisii", $tid, $tid, $tid, $date, $slot['slot_number'], $slot['slot_number']);
+                $stmt_teacher->bind_param("iiiisii", $tid, $tid, $tid, $academic_year_id, $date, $slot['slot_number'], $slot['slot_number']);
                 $stmt_teacher->execute();
                 $teacher_busy = $stmt_teacher->get_result()->fetch_assoc();
+                $stmt_teacher->close();
                 if ($teacher_busy['cnt'] > 0) {
                     $conflicts[] = "อาจารย์ร่วม (user_id: $tid) มีการใช้งานใน class_sessions";
+                }
+            }
+
+            // 3.5 ตรวจสอบการเสนอ/การอนุมัติชดเชยจาก compensation_logs (proposed / makeup) - ป้องกันเลือกซ้ำกับที่เคยเสนอ/อนุมัติแล้ว
+            if ($stmt_proposed) {
+                $stmt_proposed->bind_param("isiii", $cancellation_id, $date, $classroom['classroom_id'], $slot['slot_number'], $slot['slot_number']);
+                $stmt_proposed->execute();
+                $comp_proposed = $stmt_proposed->get_result()->fetch_assoc();
+                if ($comp_proposed['cnt'] > 0) {
+                    $conflicts[] = 'มีการเสนอการชดเชยในช่วงเวลานี้ (proposed)';
+                }
+            }
+            if ($stmt_makeup) {
+                $stmt_makeup->bind_param("isiii", $cancellation_id, $date, $classroom['classroom_id'], $slot['slot_number'], $slot['slot_number']);
+                $stmt_makeup->execute();
+                $comp_makeup = $stmt_makeup->get_result()->fetch_assoc();
+                if ($comp_makeup['cnt'] > 0) {
+                    $conflicts[] = 'มีการอนุมัติการชดเชยในช่วงเวลานี้ (makeup)';
                 }
             }
 
@@ -1324,10 +1281,15 @@ function getDetailedRoomAvailabilityArray($mysqli, $date, $cancellation_id)
         $result[] = $room_data;
     }
 
+    // ปิด prepared statements หากเปิดไว้
+    if ($stmt_proposed) $stmt_proposed->close();
+    if ($stmt_makeup) $stmt_makeup->close();
+
     return $result;
 }
+
 /**
- * ตรวจสอบความขัดแย้งในตาราง - ฟังก์ชันหลัก
+ * ตรวจสอบความขัดแย้งในตาราง
  */
 function checkScheduleConflicts($mysqli, $date, $classroom_id, $start_slot, $end_slot, $exclude_cancellation_id = 0) {
     $conflicts = [];
@@ -1365,43 +1327,49 @@ function checkScheduleConflicts($mysqli, $date, $classroom_id, $start_slot, $end
         
         while ($row = $result->fetch_assoc()) {
             $conflicts[] = "มีการเรียน: {$row['subject_code']} - {$row['teacher_name']}";
-
             $has_conflict = true;
         }
         
-        // 3. ตรวจสอบการชดเชยที่อนุมัติแล้ว
+        // 2. ตรวจสอบการชดเชยที่อนุมัติแล้วและรอยืนยัน (ใช้ proposed_*)
         $compensation_conflict = "
             SELECT s.subject_code, s.subject_name,
-                   CONCAT(u.title, u.name, ' ', u.lastname) as teacher_name
+                CONCAT(u.title, u.name, ' ', u.lastname) as teacher_name
             FROM compensation_logs cl
             JOIN teaching_schedules ts ON cl.schedule_id = ts.schedule_id
             JOIN subjects s ON ts.subject_id = s.subject_id
             JOIN users u ON ts.user_id = u.user_id
-            WHERE cl.makeup_date = ?
-            AND cl.makeup_classroom_id = ?
-            AND cl.status = 'ดำเนินการแล้ว'
+            WHERE (
+                (cl.proposed_makeup_date = ? AND cl.proposed_makeup_classroom_id = ? AND cl.status = 'รอยืนยัน')
+                OR
+                (cl.makeup_date = ? AND cl.makeup_classroom_id = ? AND cl.status = 'ดำเนินการแล้ว')
+            )
             AND cl.cancellation_id != ?
             AND (
+                (cl.proposed_makeup_start_time_slot_id <= ? AND cl.proposed_makeup_end_time_slot_id >= ?) OR
+                (cl.proposed_makeup_start_time_slot_id <= ? AND cl.proposed_makeup_end_time_slot_id >= ?) OR
+                (cl.proposed_makeup_start_time_slot_id >= ? AND cl.proposed_makeup_end_time_slot_id <= ?)
+                OR
                 (cl.makeup_start_time_slot_id <= ? AND cl.makeup_end_time_slot_id >= ?) OR
                 (cl.makeup_start_time_slot_id <= ? AND cl.makeup_end_time_slot_id >= ?) OR
                 (cl.makeup_start_time_slot_id >= ? AND cl.makeup_end_time_slot_id <= ?)
             )
         ";
-        
         $stmt = $mysqli->prepare($compensation_conflict);
-        $stmt->bind_param("siiiiiiii", $date, $classroom_id, $exclude_cancellation_id,
-                         $start_slot, $start_slot, $end_slot, $end_slot,
-                         $start_slot, $end_slot);
+        $stmt->bind_param(
+            "sisisiiiiiiiiiiii",
+            $date, $classroom_id, $date, $classroom_id, $exclude_cancellation_id,
+            $start_slot, $start_slot, $end_slot, $end_slot, $start_slot, $end_slot,
+            $start_slot, $start_slot, $end_slot, $end_slot, $start_slot, $end_slot
+        );
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         while ($row = $result->fetch_assoc()) {
             $conflicts[] = "การชดเชยอื่น: {$row['subject_code']} - {$row['teacher_name']}";
-
             $has_conflict = true;
         }
         
-        // 4. ตรวจสอบวันหยุด
+        // 3. ตรวจสอบวันหยุด
         $holiday_conflict = "
             SELECT holiday_name
             FROM public_holidays 

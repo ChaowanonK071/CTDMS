@@ -74,7 +74,7 @@ try {
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>จัดการการชดเชยการเรียนการสอน - Teaching Schedule System</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
-    <link rel="icon" href="../img/kaiadmin/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -545,7 +545,6 @@ try {
         }
 
         .change-indicator::before {
-            content: "⚠️";
             margin-right: 5px;
         }
 
@@ -1141,6 +1140,18 @@ let autoScheduleTeachers = [];
 let selectedTeacherId = null;
 let userRole = null;
 
+function getFullThaiDay(dayShort) {
+    const map = {
+        'อา.': 'อาทิตย์',
+        'จ.': 'จันทร์',
+        'อ.': 'อังคาร',
+        'พ.': 'พุธ',
+        'พฤ.': 'พฤหัสบดี',
+        'ศ.': 'ศุกร์',
+        'ส.': 'เสาร์'
+    };
+    return map[dayShort] || dayShort;
+}
 // ===== ฟังก์ชันแสดง/ซ่อน Loading =====
 function showLoading() {
     document.getElementById('loadingOverlay').style.display = 'flex';
@@ -1162,7 +1173,7 @@ function showError(message) {
 
 // ===== ฟังก์ชันเรียก API =====
 async function callCompensationAPI(action, params = {}) {
-    console.log('🔄 กำลังเรียก API:', action, params);
+    console.log('กำลังเรียก API:', action, params);
     
     const formData = new URLSearchParams({
         action: action,
@@ -1187,7 +1198,7 @@ async function callCompensationAPI(action, params = {}) {
         }
 
         const data = await response.json();
-        console.log('✅ ได้รับข้อมูล:', data);
+        console.log('ได้รับข้อมูล:', data);
 
         if (!data.success) {
             throw new Error(data.message || 'การเรียก API ไม่สำเร็จ');
@@ -1196,7 +1207,7 @@ async function callCompensationAPI(action, params = {}) {
         return data;
 
     } catch (error) {
-        console.error('🔥 Exception:', error);
+        console.error('Exception:', error);
         throw new Error('เกิดข้อผิดพลาด: ' + error.message);
     }
 }
@@ -1205,22 +1216,19 @@ async function callCompensationAPI(action, params = {}) {
 async function loadCompensations() {
     try {
         const data = await callCompensationAPI('get_all_compensations');
-        
         if (data.success && data.data) {
             allCompensations = data.data.compensations || [];
-            
             // อัปเดตสถิติ
             if (data.data.statistics) {
                 updateStatistics(data.data.statistics);
             } else {
                 updateStatistics();
             }
-            
+            // อัปเดตตัวกรองอาจารย์ทุกครั้งหลังโหลดข้อมูล
+            updateTeacherFilter();
             applyFilters();
         }
-        
     } catch (error) {
-        console.error('Error loading compensations:', error);
         showError(error.message);
         updateStatistics();
     }
@@ -1244,66 +1252,56 @@ async function loadTeachers() {
 
 function updateTeacherFilter() {
     const teacherSelect = document.getElementById('teacherFilter');
+    const prevValue = teacherSelect.value;
     teacherSelect.innerHTML = '<option value="">ทั้งหมด</option>';
 
     const currentUserId = <?php echo $current_user_id; ?>;
-    const teacherMap = {};
-    allCompensations.forEach(comp => {
-        if (comp.user_id && comp.teacher_name) {
-            if (!teacherMap[comp.user_id]) {
-                teacherMap[comp.user_id] = {
-                    user_id: comp.user_id,
-                    teacher_name: comp.teacher_name,
-                    count: 0
-                };
-            }
-        }
-        if (comp.co_user_id && comp.co_teacher_name) {
-            if (!teacherMap[comp.co_user_id]) {
-                teacherMap[comp.co_user_id] = {
-                    user_id: comp.co_user_id,
-                    teacher_name: comp.co_teacher_name,
-                    count: 0
-                };
-            }
-        }
-        if (comp.co_user_id_2 && comp.co_teacher_name_2) {
-            if (!teacherMap[comp.co_user_id_2]) {
-                teacherMap[comp.co_user_id_2] = {
-                    user_id: comp.co_user_id_2,
-                    teacher_name: comp.co_teacher_name_2,
-                    count: 0
-                };
-            }
-        }
-    });
 
-    Object.values(teacherMap).forEach(teacher => {
-        teacher.count = allCompensations.filter(comp =>
-            comp.user_id == teacher.user_id ||
-            comp.co_user_id == teacher.user_id ||
-            comp.co_user_id_2 == teacher.user_id
-        ).length;
-    });
+    let teacherEntries = [];
 
-    // เรียง user_id ตัวเองขึ้นก่อน
-    const teachersArr = Object.values(teacherMap).sort((a, b) => {
-        if (a.user_id == currentUserId) return -1;
-        if (b.user_id == currentUserId) return 1;
-        return a.teacher_name.localeCompare(b.teacher_name, 'th');
-    });
+    if (Array.isArray(teachersList) && teachersList.length > 0) {
+        teacherEntries = teachersList.map(t => {
+            const first = (t.name || '').trim();
+            const last = (t.lastname || '').trim();
+            const displayName = t.teacher_name || `${t.title || ''}${first ? first + ' ' : ''}${last}`.trim() || 'ไม่ระบุ';
+            const sortKey = `${first} ${last}`.trim() || (t.teacher_name || '').trim();
+            return { user_id: String(t.user_id || t.id || ''), displayName, sortKey };
+        });
+    } else {
+        const teacherMap = {};
+        allCompensations.forEach(comp => {
+            if (comp.user_id && comp.teacher_name) teacherMap[String(comp.user_id)] = comp.teacher_name;
+            if (comp.co_user_id && comp.co_teacher_name) teacherMap[String(comp.co_user_id)] = comp.co_teacher_name;
+            if (comp.co_user_id_2 && comp.co_teacher_name_2) teacherMap[String(comp.co_user_id_2)] = comp.co_teacher_name_2;
+        });
+        teacherEntries = Object.entries(teacherMap).map(([user_id, name]) => {
+            return { user_id: String(user_id), displayName: name || 'ไม่ระบุ', sortKey: (name || '').trim() };
+        });
+    }
 
-    teachersArr.forEach(teacher => {
+    const seen = new Set();
+    const uniqueTeachers = teacherEntries
+        .filter(t => t.user_id && !seen.has(t.user_id) && (seen.add(t.user_id), true))
+        .sort((a, b) => a.sortKey.localeCompare(b.sortKey, 'th', { sensitivity: 'base' }));
+
+    uniqueTeachers.forEach(teacher => {
         const option = document.createElement('option');
         option.value = teacher.user_id;
-        option.textContent = `${teacher.teacher_name} (รายการ ${teacher.count})`;
-        if (teacher.user_id == currentUserId) {
-            option.selected = true;
+        option.textContent = teacher.displayName;
+        if (String(teacher.user_id) === String(currentUserId)) {
+            option.classList.add('current-user-option');
         }
         teacherSelect.appendChild(option);
     });
+
+    if ([...teacherSelect.options].some(opt => opt.value === prevValue)) {
+        teacherSelect.value = prevValue;
+    } else {
+        teacherSelect.value = '';
+    }
     filterData();
 }
+
 
 // ===== ฟังก์ชันกรองข้อมูล =====
 function applyFilters() {
@@ -1315,7 +1313,6 @@ function applyFilters() {
     filteredCompensations = allCompensations.filter(comp => {
         const statusMatch = !statusFilter || comp.status === statusFilter;
         const typeMatch = !typeFilter || comp.cancellation_type === typeFilter;
-        // ปรับตรงนี้: ให้แสดงทั้งอาจารย์หลักและอาจารย์ร่วม
         const teacherMatch = !teacherFilter ||
             comp.user_id == teacherFilter ||
             comp.co_user_id == teacherFilter ||
@@ -1420,15 +1417,22 @@ function updateCompensationTable() {
                     </button>
                 `;
                 break;
-                // <button class="btn btn-sm btn-outline-warning" onclick="requestCancelCompensation(${comp.cancellation_id})" title="ขอยกเลิกรายการ">
-                //     <i class="fas fa-ban"></i>
-                // </button>
+
             case 'ดำเนินการแล้ว':
                 actionButtons += `
                     <button class="btn btn-sm btn-outline-danger" onclick="exportSingleCompensation(${comp.cancellation_id})" title="Export PDF">
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
                 `;
+                if (comp.co_teacher_name || comp.co_teacher_name_2) {
+                    actionButtons += `
+                        <select class="form-select form-select-sm d-inline-block w-auto me-1" id="teacherRoleExport_${comp.cancellation_id}">
+                            <option value="main">อาจารย์หลัก</option>
+                            ${comp.co_teacher_name ? `<option value="co1">อาจารย์ร่วม1</option>` : ''}
+                            ${comp.co_teacher_name_2 ? `<option value="co2">อาจารย์ร่วม2</option>` : ''}
+                        </select>
+                    `;
+                }
                 break;
         }
         
@@ -1456,27 +1460,31 @@ function updateCompensationTable() {
 async function exportSingleCompensation(cancellationId) {
     try {
         showLoading();
-        
+
+        // ดึงค่าจาก dropdown เฉพาะแถว
+        const teacherRole = document.getElementById('teacherRoleExport_' + cancellationId)?.value || 'main';
+
         // สร้าง URL สำหรับ export PDF รายการเดียว
         const params = new URLSearchParams({
             academic_year_id: ACADEMIC_YEAR_ID,
             status_filter: 'confirmed_only',
-            cancellation_id: cancellationId, // เพิ่มพารามิเตอร์สำหรับรายการเดียว
+            cancellation_id: cancellationId,
+            teacher_role: teacherRole,
             export_format: 'pdf',
             export_scope: 'single_compensation'
         });
-        
+
         const exportUrl = `../api/export_compensation_tcpdf.php?${params.toString()}`;
         const exportWindow = window.open(exportUrl, '_blank');
-        
+
         hideLoading();
-        
+
         if (!exportWindow) {
             throw new Error('ไม่สามารถเปิดหน้าต่างสำหรับดาวน์โหลดได้ กรุณาตรวจสอบการตั้งค่า popup blocker');
         }
-        
+
         showSuccess('เริ่มต้น Export รายการการชดเชยเป็น PDF');
-        
+
     } catch (error) {
         hideLoading();
         console.error('Export single compensation error:', error);
@@ -1513,17 +1521,20 @@ function getThaiDayOfWeek(dateString) {
 }
 function showAutoScheduleConfirmModal(scheduleData) {
     let conflictWarning = '';
-    if (scheduleData.conflicts && scheduleData.conflicts.length > 0) {
-        conflictWarning = `
-            <div class="conflict-warning">
-                <h6><i class="fas fa-exclamation-triangle"></i> คำเตือน</h6>
-                <ul class="mb-0">
-                    ${scheduleData.conflicts.map(conflict => `<li>${conflict}</li>`).join('')}
-                </ul>
-            </div>
-        `;
-    }
 
+let teachersDisplay = '';
+if (scheduleData.teacher_name) {
+    teachersDisplay += `<span>${scheduleData.teacher_name}</span>`;
+}
+if (scheduleData.co_teacher_name) {
+    teachersDisplay += `<br><small class="text-muted">อาจารย์ร่วม: ${scheduleData.co_teacher_name}</small>`;
+}
+if (scheduleData.co_teacher_name_2) {
+    teachersDisplay += `<br><small class="text-muted">อาจารย์ร่วม: ${scheduleData.co_teacher_name_2}</small>`;
+}
+if (!teachersDisplay) {
+    teachersDisplay = 'ไม่ระบุ';
+}
     const content = `
     <div class="compensation-details">
         <h6><i class="fas fa-book text-primary"></i> รายวิชาที่จะจัดตาราง</h6>
@@ -1537,7 +1548,7 @@ function showAutoScheduleConfirmModal(scheduleData) {
         </div>
         <div class="detail-row">
             <span class="detail-label">อาจารย์ผู้สอน:</span>
-            <span class="detail-value">${scheduleData.teacher_name}</span>
+            <span class="detail-value">${teachersDisplay}</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">ชั้นปี:</span>
@@ -1572,15 +1583,6 @@ function showAutoScheduleConfirmModal(scheduleData) {
                     </div>
                 </div>
             </div>
-
-            ${scheduleData.changes && scheduleData.changes.length > 0 ? `
-                <div class="schedule-changes">
-                    <h6><i class="fas fa-exclamation-triangle text-warning"></i> การเปลี่ยนแปลงจากตารางเดิม</h6>
-                    <ul class="mb-0">
-                        ${scheduleData.changes.map(change => `<li>${change}</li>`).join('')}
-                    </ul>
-                </div>
-            ` : ''}
 
             ${conflictWarning}
 
@@ -1957,9 +1959,9 @@ async function executeAutoScheduleAll() {
             confirmMessage += `จำนวนรายการ: ${totalPending} รายการ\n`;
             break;
     }
-    
-    confirmMessage += '\n✅ ระบบจะสร้างตารางเสนอและรอการยืนยันจากคุณก่อนดำเนินการจริง';
-    confirmMessage += '\n⚠️ การดำเนินการนี้อาจใช้เวลาสักครู่';
+
+    confirmMessage += '\nระบบจะสร้างตารางเสนอและรอการยืนยันจากคุณก่อนดำเนินการจริง';
+    confirmMessage += '\nการดำเนินการนี้อาจใช้เวลาสักครู่';
     
     if (!confirm(confirmMessage)) {
         return;
@@ -1979,10 +1981,7 @@ async function executeAutoScheduleAll() {
         } else if (selectionType === 'self') {
             params.selected_teacher_id = <?php echo $current_user_id; ?>;
         }
-        // สำหรับ 'all' ไม่ต้องเพิ่ม selected_teacher_id
-        
-        console.log('🚀 Sending auto schedule request:', params);
-        
+                
         const data = await callCompensationAPI('auto_schedule_all_compensations', params);
         
         hideLoading();
@@ -2000,7 +1999,7 @@ async function executeAutoScheduleAll() {
         
     } catch (error) {
         hideLoading();
-        console.error('❌ Auto schedule error:', error);
+        console.error('Auto schedule error:', error);
         showError(error.message);
     }
 }
@@ -2016,7 +2015,7 @@ function showAutoScheduleResults(results, message) {
         if (successful.length > 0) {
             detailsHtml += `
                 <div class="mt-3">
-                    <h6 class="text-success">✅ จัดตารางสำเร็จ (${successful.length} รายการ)</h6>
+                    <h6 class="text-success">จัดตารางสำเร็จ (${successful.length} รายการ)</h6>
                     <ul class="list-unstyled">
             `;
             successful.forEach(item => {
@@ -2034,7 +2033,7 @@ function showAutoScheduleResults(results, message) {
         if (failed.length > 0) {
             detailsHtml += `
                 <div class="mt-3">
-                    <h6 class="text-warning">⚠️ ไม่สามารถจัดตารางได้ (${failed.length} รายการ)</h6>
+                    <h6 class="text-warning">ไม่สามารถจัดตารางได้ (${failed.length} รายการ)</h6>
                     <ul class="list-unstyled">
             `;
             failed.forEach(item => {
@@ -2184,7 +2183,7 @@ async function viewDetails(cancellationId) {
     }
 }
 
-// ===== ฟังก์ชันแสดงข้อมูลการชดเชย - ปรับปรุงให้ใช้ข้อมูลที่ถูกต้อง =====
+// ===== ฟังก์ชันแสดงข้อมูลการชดเชย =====
 function displayCompensationInfo(data) {
     const compensationInfo = document.getElementById('compensationInfo');
     
@@ -2242,8 +2241,8 @@ function showCompensationDetails(compensation) {
     } else {
         teachersInfo = 'ไม่ระบุ';
     }
+    let fullDay = getFullThaiDay(compensation.day_of_week);
 
-    // ==== ปรับตรงนี้: แสดงชั้นปีเป็น department + class_year + curriculum ====
     let classYearDisplay = '';
     if (compensation.is_module_subject == 1 && compensation.group_name) {
         classYearDisplay = `<span>${compensation.group_name || '-'} ${compensation.module_name || '-'}</span>
@@ -2311,11 +2310,14 @@ function showCompensationDetails(compensation) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">เวลา:</span>
-                <span class="detail-value">${compensation.start_time || ''} - ${compensation.end_time || ''}</span>
+                <span class="detail-value">${compensation.start_time || ''} - ${compensation.end_time || ''}
+                (คาบ ${compensation.start_time_slot_id} - ${compensation.end_time_slot_id})
+                    ${compensation.start_slot && compensation.end_slot ? `<br><span class="text-primary">คาบ ${compensation.start_slot} - ${compensation.end_slot}</span>` : ''}
+                </span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">วัน:</span>
-                <span class="detail-value">${compensation.day_of_week || 'ไม่ระบุ'}</span>
+                <span class="detail-value">${fullDay || 'ไม่ระบุ'}</span>
             </div>
         </div>
 
@@ -2332,7 +2334,10 @@ function showCompensationDetails(compensation) {
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">เวลา:</span>
-                    <span class="detail-value">${compensation.proposed_start_time || ''} - ${compensation.proposed_end_time || ''}</span>
+                    <span class="detail-value"> ${compensation.proposed_start_time || ''} - ${compensation.proposed_end_time || ''}
+                    (คาบ ${compensation.proposed_makeup_start_time_slot_id} - ${compensation.proposed_makeup_end_time_slot_id})
+                        ${compensation.proposed_start_slot && compensation.proposed_end_slot ? `<br><span class="text-warning">คาบ ${compensation.proposed_start_slot} - ${compensation.proposed_end_slot}</span>` : ''}
+                    </span>
                 </div>
                 ${compensation.change_reason ? `
                 <div class="detail-row">
@@ -2356,7 +2361,10 @@ function showCompensationDetails(compensation) {
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">เวลา:</span>
-                    <span class="detail-value">${compensation.makeup_start_time || ''} - ${compensation.makeup_end_time || ''}</span>
+                    <span class="detail-value">${compensation.makeup_start_time || ''} - ${compensation.makeup_end_time || ''}
+                    (คาบ ${compensation.makeup_start_time_slot_id} - ${compensation.makeup_end_time_slot_id})
+                        ${compensation.makeup_start_slot && compensation.makeup_end_slot ? `<br><span class="text-success">คาบ ${compensation.makeup_start_slot} - ${compensation.makeup_end_slot}</span>` : ''}
+                    </span>
                 </div>
                 ${compensation.approved_by_name ? `
                 <div class="detail-row">
@@ -2418,9 +2426,7 @@ function showCompensationDetails(compensation) {
             </div>
         ` : ''}
         
-        ${compensation.status === 'ดำเนินการแล้ว' ? `
-
-        ` : ''}
+        ${compensation.status === 'ดำเนินการแล้ว' ? `` : ''}
     `;
     
     document.getElementById('compensationDetailContent').innerHTML = content;
@@ -2575,10 +2581,7 @@ function highlightPendingApprovals() {
 
 // ===== การเริ่มต้นระบบ =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Compensation Management System with Teacher Filter Initialized');
-    console.log('Academic Year ID:', ACADEMIC_YEAR_ID);
-    console.log('API Path:', COMPENSATION_API_PATH);
-    
+
     // เปิดใช้งาน tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

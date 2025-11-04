@@ -68,9 +68,7 @@ function getTableColumns() {
     return $columns;
 }
 
-// ตรวจสอบ HTTP Method รวมถึง Method Override
 function getActualMethod() {
-    // ตรวจสอบ X-HTTP-Method-Override header ก่อน
     if (isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
         return strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']);
     }
@@ -129,7 +127,7 @@ function getAllClassrooms() {
             "data" => $classrooms,
             "message" => "ดึงข้อมูลห้องเรียนทั้งหมดสำเร็จ",
             "count" => count($classrooms),
-            "debug_columns" => $columns // เพิ่มข้อมูล debug
+            "debug_columns" => $columns
         ];
     } catch(PDOException $e) {
         return [

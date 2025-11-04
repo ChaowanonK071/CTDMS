@@ -1,8 +1,4 @@
 <?php
-/**
- * รองรับทั้ง eLogin และ Admin logout
- */
-
 session_start();
 
 header('Content-Type: application/json; charset=utf-8');

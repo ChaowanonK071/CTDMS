@@ -1,10 +1,4 @@
 <?php
-/**
- * Google Calendar Event Sender API - Optimized Version
- * ไฟล์: /api/calendar/google_calendar_sender.php
- * ปรับปรุงประสิทธิภาพและจัดการ timeout
- */
-
 // เพิ่ม execution time และ memory limit
 ini_set('max_execution_time', 300); // 5 นาที
 ini_set('memory_limit', '256M');
@@ -171,7 +165,7 @@ if (empty($action)) {
             'send_class_sessions', 
             'send_compensation_event',
             'send_single_event',
-            'send_batch' // เพิ่ม action ใหม่สำหรับส่งแบบ batch
+            'send_batch' 
         ]
     ], 400);
 }
@@ -358,9 +352,8 @@ function sendMultipleClassSessions() {
     
     try {
         $academic_year_id = $_POST['academic_year_id'] ?? null;
-        $batch_size = $_POST['batch_size'] ?? 50; // ส่งครั้งละ 50 รายการ
-        $offset = $_POST['offset'] ?? 0; // เริ่มจากตำแหน่งไหน
-        
+        $batch_size = $_POST['batch_size'] ?? 50;
+        $offset = $_POST['offset'] ?? 0; 
         if (!$academic_year_id || !is_numeric($academic_year_id)) {
             sendJsonResponse([
                 'success' => false,
@@ -498,7 +491,7 @@ function sendMultipleClassSessions() {
         foreach ($sessions as $session) {
             // ตรวจสอบเวลาการทำงาน
             if ((time() - $start_time) > $max_execution_time) {
-                error_log("⏰ Execution time limit reached, stopping batch process");
+                error_log("Execution time limit reached, stopping batch process");
                 break;
             }
             
@@ -507,21 +500,20 @@ function sendMultipleClassSessions() {
                 
                 if ($result['success']) {
                     $sent_count++;
-                    error_log("✅ Sent session {$session['session_id']} to Google Calendar");
+                    error_log("Sent session {$session['session_id']} to Google Calendar");
                 } else {
                     $failed_count++;
                     $errors[] = "Session {$session['session_id']}: " . $result['error'];
-                    error_log("❌ Failed to send session {$session['session_id']}: " . $result['error']);
+                    error_log("Failed to send session {$session['session_id']}: " . $result['error']);
                 }
                 
-                // หน่วงเวลาเล็กน้อยเพื่อหลีกเลี่ยง rate limit
-                usleep(100000); // 0.1 วินาที
+                usleep(100000); 
                 
             } catch (Exception $e) {
                 $failed_count++;
                 $error_msg = "Session {$session['session_id']}: " . $e->getMessage();
                 $errors[] = $error_msg;
-                error_log("❌ Exception sending session {$session['session_id']}: " . $e->getMessage());
+                error_log("Exception sending session {$session['session_id']}: " . $e->getMessage());
             }
         }
         
@@ -545,7 +537,7 @@ function sendMultipleClassSessions() {
                 'is_complete' => $is_complete,
                 'next_offset' => $is_complete ? null : $processed_total,
                 'token_refreshed' => $token_refreshed,
-                'errors' => array_slice($errors, 0, 5) // แสดงแค่ 5 errors แรก
+                'errors' => array_slice($errors, 0, 5)
             ]
         ]);
         
@@ -556,7 +548,7 @@ function sendMultipleClassSessions() {
 }
 
 /**
- * ส่ง Class Sessions แบบ Batch Processing (ใหม่)
+ * ส่ง Class Sessions แบบ Batch Processing 
  */
 function sendClassSessionsBatch() {
     global $user_id;
@@ -590,8 +582,8 @@ function sendClassSessionsBatch() {
  * ประมวลผลการส่งแบบ Batch
  */
 function processBatchSending($user_id, $academic_year_id) {
-    $batch_size = 20; // ลดขนาด batch ลง
-    $max_batches = 10; // จำกัดจำนวน batch
+    $batch_size = 20;
+    $max_batches = 10; 
     $offset = 0;
     $total_sent = 0;
     $total_failed = 0;
@@ -601,7 +593,6 @@ function processBatchSending($user_id, $academic_year_id) {
         for ($batch_num = 1; $batch_num <= $max_batches; $batch_num++) {
             error_log("Processing batch {$batch_num}/{$max_batches}, offset: {$offset}");
             
-            // เรียก sendMultipleClassSessions แบบ internal
             $result = sendClassSessionsInternal($user_id, $academic_year_id, $batch_size, $offset);
             
             if (!$result['success']) {
@@ -654,9 +645,6 @@ function processBatchSending($user_id, $academic_year_id) {
  * ส่ง Class Sessions แบบ Internal (สำหรับ batch processing)
  */
 function sendClassSessionsInternal($user_id, $academic_year_id, $batch_size, $offset) {
-    // Implementation คล้ายกับ sendMultipleClassSessions แต่ return array แทน sendJsonResponse
-    // ... (โค้ดจะยาวมาก ขอย่อให้อ่านง่าย)
-    
     return [
         'success' => true,
         'data' => [
@@ -890,12 +878,11 @@ function refreshGoogleTokenForSender($user_id, $refresh_token, $conn) {
 }
 
 /**
- * ส่ง Event เดี่ยวไป Google Calendar (สำหรับ API call โดยตรง)
+ * ส่ง Event เดี่ยวไป Google Calendar
  */
 function sendEventToGoogleCalendar() {
     global $user_id;
-    
-    // Placeholder function - ใช้สำหรับ API call โดยตรง
+
     sendJsonResponse([
         'success' => false,
         'message' => 'ฟังก์ชันนี้ยังไม่ได้ implement สำหรับ API call โดยตรง',
@@ -908,8 +895,7 @@ function sendEventToGoogleCalendar() {
  */
 function sendCompensationEvent() {
     global $user_id;
-    
-    // Placeholder function - ใช้สำหรับส่ง Compensation Events
+
     sendJsonResponse([
         'success' => false,
         'message' => 'ฟังก์ชันนี้ยังไม่ได้ implement',

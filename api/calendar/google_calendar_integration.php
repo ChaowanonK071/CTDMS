@@ -1,10 +1,4 @@
 <?php
-/**
- * Enhanced Google Calendar Integration with Auto-refresh
- * ไฟล์: google_calendar_integration.php
- * เพิ่มฟังก์ชัน auto-refresh เมื่อ login และปรับปรุงการจัดการ token
- */
-
 // ป้องกันการเรียกไฟล์โดยตรง
 if (!defined('DB_HOST')) {
     die('Direct access not allowed');
@@ -64,8 +58,6 @@ if (!function_exists('isGoogleCalendarConnected')) {
         }
     }
 }
-
-// ===== ฟังก์ชัน Auto-refresh เมื่อ Login (ใหม่) =====
 
 if (!function_exists('autoRefreshTokenOnLogin')) {
     /**
@@ -130,7 +122,7 @@ if (!function_exists('autoRefreshTokenOnLogin')) {
             } else if ($minutes_to_expiry <= 0) {
                 $should_refresh = true;
                 $reason = 'expired';
-            } else if ($minutes_to_expiry <= 120) { // หมดอายุภายใน 2 ชั่วโมง
+            } else if ($minutes_to_expiry <= 120) {
                 $should_refresh = true;
                 $reason = 'expiring_soon';
             }
@@ -138,7 +130,6 @@ if (!function_exists('autoRefreshTokenOnLogin')) {
             if ($should_refresh) {
                 error_log("Auto-refreshing token for user $user_id (reason: $reason, minutes to expiry: $minutes_to_expiry)");
                 
-                // ใช้ฟังก์ชัน refresh ที่มีอยู่แล้ว
                 $refreshResult = refreshGoogleAccessTokenEnhanced($user_id, true);
                 
                 return [
@@ -175,12 +166,7 @@ if (!function_exists('autoRefreshTokenOnLogin')) {
 // ===== ฟังก์ชัน Refresh Token ที่ปรับปรุงแล้ว =====
 
 if (!function_exists('refreshGoogleAccessTokenEnhanced')) {
-    /**
-     * Enhanced Refresh Google Access Token
-     * @param int $user_id ID ของผู้ใช้
-     * @param bool $forceRefresh บังคับ refresh แม้ token ยังไม่หมดอายุ
-     * @return array ผลลัพธ์การ refresh token
-     */
+
     function refreshGoogleAccessTokenEnhanced($user_id, $forceRefresh = false) {
         try {
             $conn = connectMySQLi();
@@ -211,7 +197,6 @@ if (!function_exists('refreshGoogleAccessTokenEnhanced')) {
                 ];
             }
             
-            // ตรวจสอบว่าต้อง refresh หรือไม่ (ถ้าไม่ force)
             if (!$forceRefresh && $auth['token_expiry']) {
                 $expiry_time = strtotime($auth['token_expiry']);
                 $current_time = time();
@@ -234,7 +219,6 @@ if (!function_exists('refreshGoogleAccessTokenEnhanced')) {
             
             error_log("Starting token refresh for user $user_id");
             
-            // ใช้ cURL เพื่อ refresh token
             $postData = [
                 'client_id' => GOOGLE_CLIENT_ID,
                 'client_secret' => GOOGLE_CLIENT_SECRET,
@@ -522,7 +506,7 @@ if (!function_exists('createEventDataFromCompensation')) {
     }
 }
 
-// ===== ฟังก์ชันจัดการสถานะ (ปรับปรุงแล้ว) =====
+// ===== ฟังก์ชันจัดการสถานะ =====
 
 if (!function_exists('getGoogleAuthStatus')) {
     function getGoogleAuthStatus($user_id = null) {
@@ -681,7 +665,7 @@ if (!function_exists('getGoogleCalendarWarning')) {
             ];
         }
         
-        return null; // ไม่มีการเตือน
+        return null;
     }
 }
 
@@ -848,12 +832,6 @@ if (!function_exists('deleteGoogleCalendarEvent')) {
 // ===== ฟังก์ชันสำหรับการจัดการ Login Integration =====
 
 if (!function_exists('checkAndRefreshOnLogin')) {
-    /**
-     * ตรวจสอบและ refresh token เมื่อ user login
-     * เรียกใช้ฟังก์ชันนี้หลังจาก user login สำเร็จ
-     * @param int $user_id ID ของผู้ใช้
-     * @return array ผลลัพธ์การตรวจสอบและ refresh
-     */
     function checkAndRefreshOnLogin($user_id) {
         try {
             error_log("Checking Google Calendar token on login for user $user_id");
@@ -888,11 +866,6 @@ if (!function_exists('checkAndRefreshOnLogin')) {
 }
 
 if (!function_exists('handleAutoRefreshRequest')) {
-    /**
-     * จัดการ request สำหรับ auto-refresh จาก JavaScript
-     * @param int $user_id ID ของผู้ใช้
-     * @return array response สำหรับ JavaScript
-     */
     function handleAutoRefreshRequest($user_id) {
         try {
             $result = autoRefreshTokenOnLogin($user_id);
@@ -918,11 +891,6 @@ if (!function_exists('handleAutoRefreshRequest')) {
 }
 
 if (!function_exists('getTokenTimeRemaining')) {
-    /**
-     * คำนวณเวลาที่เหลือของ token
-     * @param int $user_id ID ของผู้ใช้
-     * @return array ข้อมูลเวลาที่เหลือ
-     */
     function getTokenTimeRemaining($user_id) {
         try {
             $conn = connectMySQLi();
@@ -977,11 +945,6 @@ if (!function_exists('getTokenTimeRemaining')) {
 }
 
 if (!function_exists('formatTimeRemaining')) {
-    /**
-     * แปลงวินาทีเป็นรูปแบบที่อ่านง่าย
-     * @param int $seconds จำนวนวินาที
-     * @return string เวลาในรูปแบบที่อ่านง่าย
-     */
     function formatTimeRemaining($seconds) {
         if ($seconds <= 0) {
             return 'หมดอายุแล้ว';
@@ -1017,12 +980,6 @@ error_log("Enhanced Google Calendar Integration with Auto-refresh loaded success
 
 // เพิ่มฟังก์ชันสำหรับ Auto-send Class Sessions
 if (!function_exists('sendMultipleClassSessionsToGoogle')) {
-    /**
-     * ส่ง Class Sessions หลายรายการไป Google Calendar พร้อมกัน
-     * @param int $user_id ID ของผู้ใช้
-     * @param array $sessions_data ข้อมูล Class Sessions
-     * @return array ผลลัพธ์การส่ง
-     */
     function sendMultipleClassSessionsToGoogle($user_id, $sessions_data) {
         try {
             $conn = connectMySQLi();
@@ -1126,12 +1083,6 @@ if (!function_exists('sendMultipleClassSessionsToGoogle')) {
 }
 
 if (!function_exists('sendSingleEventToGoogle')) {
-    /**
-     * ส่ง Event เดี่ยวไป Google Calendar
-     * @param string $access_token Google Access Token
-     * @param array $event_data ข้อมูล Event
-     * @return array ผลลัพธ์การส่ง
-     */
     function sendSingleEventToGoogle($access_token, $event_data) {
         try {
             $ch = curl_init();
@@ -1195,14 +1146,6 @@ if (!function_exists('sendSingleEventToGoogle')) {
 }
 
 if (!function_exists('updateSessionGoogleEventId')) {
-    /**
-     * อัปเดต Class Session ด้วย Google Event ID
-     * @param mysqli $conn Database connection
-     * @param int $session_id ID ของ Class Session
-     * @param string $google_event_id Google Event ID
-     * @param string $event_url Google Event URL
-     * @return bool สำเร็จหรือไม่
-     */
     function updateSessionGoogleEventId($conn, $session_id, $google_event_id, $event_url = null) {
         try {
             $update_sql = "UPDATE class_sessions 
@@ -1228,11 +1171,6 @@ if (!function_exists('updateSessionGoogleEventId')) {
 }
 
 if (!function_exists('createEventDataFromSession')) {
-    /**
-     * สร้างข้อมูล Google Calendar Event จาก Class Session
-     * @param array $session_data ข้อมูล Class Session
-     * @return array ข้อมูล Event สำหรับ Google Calendar
-     */
     function createEventDataFromSession($session_data) {
         // สร้าง datetime strings
         $start_datetime = $session_data['session_date'] . 'T' . $session_data['start_time'];

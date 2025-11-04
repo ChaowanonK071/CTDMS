@@ -1,8 +1,4 @@
 <?php
-/**
- * ใช้สำหรับตรวจสอบ session และสิทธิ์การเข้าถึง
- */
-
 // เริ่ม session ถ้ายังไม่เริ่ม
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -16,10 +12,6 @@ function isLoggedIn() {
            isset($_SESSION['user_type']) && !empty($_SESSION['user_type']);
 }
 
-/**
- * บังคับให้เข้าสู่ระบบ
- * @param string $redirectUrl URL ที่จะ redirect ไปถ้าไม่ได้ login
- */
 function requireLogin($redirectPage = 'login.php') {
     if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
         // ถ้าเป็น AJAX request

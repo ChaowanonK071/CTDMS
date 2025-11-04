@@ -86,7 +86,7 @@ try {
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>ตารางสอนประจำภาคเรียน - Kaiadmin Dashboard</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
-    <link rel="icon" href="../img/kaiadmin/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../img/coe/CoE-LOGO.png" type="image/x-icon" />
 
     <!-- Fonts and icons -->
     <script src="../js/plugin/webfont/webfont.min.js"></script>
@@ -1187,7 +1187,7 @@ function loadAcademicYears() {
             } else {
                 console.error("API Error:", response.message);
                 if (response.message && response.message.includes('กรุณาเข้าสู่ระบบ')) {
-                    window.location.href = '../login.html';
+                    window.location.href = '../login.php';
                 } else {
                     alert("เกิดข้อผิดพลาดในการโหลดข้อมูลปีการศึกษา: " + response.message);
                 }
@@ -1210,7 +1210,14 @@ function loadTeachers() {
         dataType: "json",
         success: function(response) {
             if (response.status === "success") {
-                teachersData = response.data;
+                teachersData = response.data || [];
+                
+                // เรียงอาจารย์ตาม fullname (รองรับภาษาไทย)
+                teachersData.sort((a, b) => {
+                    const nameA = (a.fullname || '').trim();
+                    const nameB = (b.fullname || '').trim();
+                    return nameA.localeCompare(nameB, 'th', { sensitivity: 'base' });
+                });
                 
                 if (userType === 'admin') {
                     let options = '<option value="">ทั้งหมด</option>';
@@ -1236,7 +1243,7 @@ function loadTeachers() {
                     loadSchedule();
                 }
             } else if (response.message && response.message.includes('กรุณาเข้าสู่ระบบ')) {
-                window.location.href = '../login.html';
+                window.location.href = '../login.php';
             }
         },
         error: function(xhr, status, error) {
@@ -1480,7 +1487,7 @@ function loadSchedule() {
             } else {
                 console.error("Error loading schedule:", response.message);
                 if (response.message && response.message.includes('กรุณาเข้าสู่ระบบ')) {
-                    window.location.href = '../login.html';
+                    window.location.href = '../login.php';
                 } else {
                     alert("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + response.message);
                 }

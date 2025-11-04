@@ -1,12 +1,4 @@
-#!/usr/bin/php
 <?php
-/**
- * Auto Refresh Google Calendar Tokens - Cron Job
- * ไฟล์: /cron/auto_refresh_tokens.php
- * 
- * การใช้งาน:
- * 1. chmod +x /path/to/cron/auto_refresh_tokens.php
- * 2. เพิ่มใน crontab: */
 
 // ตั้งค่า timezone
 date_default_timezone_set('Asia/Bangkok');
@@ -21,7 +13,7 @@ function cronLog($message) {
     $timestamp = date('Y-m-d H:i:s');
     echo "[$timestamp] $message\n";
     
-    // เขียน log ลงไฟล์ (ถ้าต้องการ)
+    // เขียน log ลงไฟล์
     $logFile = __DIR__ . '/../logs/google_calendar_cron.log';
     $logDir = dirname($logFile);
     
@@ -33,7 +25,7 @@ function cronLog($message) {
 }
 
 // เริ่มต้น script
-cronLog("🚀 Auto Refresh Google Calendar Tokens - Started");
+cronLog("Auto Refresh Google Calendar Tokens - Started");
 
 try {
     // หาตำแหน่งไฟล์ config
@@ -46,7 +38,7 @@ try {
         if (file_exists($configPath)) {
             require_once $configPath;
             $configLoaded = true;
-            cronLog("✅ Config loaded from: $configPath");
+            cronLog("Config loaded from: $configPath");
             break;
         }
     }
@@ -66,7 +58,7 @@ try {
         if (file_exists($integrationPath)) {
             require_once $integrationPath;
             $integrationLoaded = true;
-            cronLog("✅ Google Calendar Integration loaded from: $integrationPath");
+            cronLog("Google Calendar Integration loaded from: $integrationPath");
             break;
         }
     }
@@ -80,22 +72,22 @@ try {
         throw new Exception('batchRefreshExpiredTokens function not found');
     }
     
-    cronLog("🔍 Checking for tokens that need refresh...");
+    cronLog("Checking for tokens that need refresh...");
     
     // กำหนดจำนวนชั่วโมงก่อนหมดอายุที่จะทำการ refresh
-    $hoursBeforeExpiry = 2; // Refresh tokens ที่จะหมดอายุภายใน 2 ชั่วโมง
+    $hoursBeforeExpiry = 2; 
     
     // เรียกใช้ batch refresh
     $result = batchRefreshExpiredTokens($hoursBeforeExpiry);
     
     // แสดงผลลัพธ์
-    cronLog("📊 Batch Refresh Results:");
+    cronLog("Batch Refresh Results:");
     cronLog("   - Total checked: " . $result['total_checked']);
     cronLog("   - Successfully refreshed: " . $result['success_count']);
     cronLog("   - Failed to refresh: " . $result['failed_count']);
     
     if (!empty($result['success_users'])) {
-        cronLog("✅ Successfully refreshed tokens for:");
+        cronLog("Successfully refreshed tokens for:");
         foreach ($result['success_users'] as $user) {
             cronLog("   - User ID: {$user['user_id']} ({$user['email']})");
             cronLog("     Old expiry: {$user['old_expiry']}");
@@ -104,7 +96,7 @@ try {
     }
     
     if (!empty($result['failed_users'])) {
-        cronLog("❌ Failed to refresh tokens for:");
+        cronLog("Failed to refresh tokens for:");
         foreach ($result['failed_users'] as $user) {
             cronLog("   - User ID: {$user['user_id']} ({$user['email']})");
             cronLog("     Error: {$user['error']}");
@@ -112,7 +104,7 @@ try {
         
         // ส่งอีเมลแจ้งเตือน admin (ถ้าต้องการ)
         if (count($result['failed_users']) > 0) {
-            cronLog("📧 Should notify admin about failed token refreshes");
+            cronLog("Should notify admin about failed token refreshes");
         }
     }
     
@@ -120,21 +112,20 @@ try {
     $memoryUsage = memory_get_peak_usage(true);
     $executionTime = microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'];
     
-    cronLog("📈 Performance stats:");
+    cronLog("Performance stats:");
     cronLog("   - Memory usage: " . formatBytes($memoryUsage));
     cronLog("   - Execution time: " . number_format($executionTime, 2) . " seconds");
     
-    cronLog("✅ Auto Refresh Google Calendar Tokens - Completed successfully");
+    cronLog("Auto Refresh Google Calendar Tokens - Completed successfully");
     
     // Exit code 0 = success
     exit(0);
     
 } catch (Exception $e) {
-    cronLog("❌ ERROR: " . $e->getMessage());
-    cronLog("📍 Stack trace: " . $e->getTraceAsString());
+    cronLog("ERROR: " . $e->getMessage());
+    cronLog("Stack trace: " . $e->getTraceAsString());
     
-    // ส่งอีเมลแจ้งเตือน admin (ถ้าต้องการ)
-    cronLog("📧 Should notify admin about cron job failure");
+    cronLog("Should notify admin about cron job failure");
     
     // Exit code 1 = error
     exit(1);

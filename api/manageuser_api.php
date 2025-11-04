@@ -48,13 +48,8 @@ function logDebug($message, $data = null) {
  * ฟังก์ชันส่ง JSON Response ที่ปลอดภัย
  */
 function sendJsonResponse($data, $httpCode = 200) {
-    // ล้าง output buffer
     ob_clean();
-    
-    // ตั้งค่า HTTP status code
     http_response_code($httpCode);
-    
-    // ส่ง JSON
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -77,9 +72,6 @@ function sendError($message, $code = 500) {
     ], $code);
 }
 
-/**
- * Class UserController - จัดการ API endpoints สำหรับผู้ใช้
- */
 class UserController {
     private $conn;
     
@@ -256,12 +248,10 @@ class UserController {
             
             // เข้ารหัสรหัสผ่าน
             if (empty($data['password'])) {
-                // สุ่มรหัสผ่าน 8 หลัก (ตัวอย่าง)
                 $data['password'] = bin2hex(random_bytes(4));
             }
             $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
             
-            // SQL Insert
             $sql = "INSERT INTO users (username, password, title, name, lastname, email, user_type, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             $params = [$username, $hashedPassword, $title, $name, $lastname, $email, $userType, $isActive];
             
@@ -307,7 +297,6 @@ class UserController {
             $updateFields = [];
             $params = [];
             
-            // สร้าง update fields
             $fieldsToUpdate = ['username', 'title', 'name', 'lastname', 'email', 'user_type', 'is_active'];
             
             foreach ($fieldsToUpdate as $field) {

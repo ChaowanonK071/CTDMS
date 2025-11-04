@@ -1,9 +1,6 @@
 <?php
 /**
- * API สำหรับจัดการวันหยุดด้วยตนเอง (เพิ่ม แก้ไข ลบ)
- * ไฟล์: /api/api_holiday_management.php
- * เวอร์ชัน: 1.0
- * วันที่: July 2025
+ * API สำหรับจัดการวันหยุดด้วยตนเอง
  */
 
 // ล้าง output buffer และตั้งค่า headers
@@ -252,7 +249,7 @@ function addHoliday() {
 
         $conn->close();
 
-        error_log("✅ Added custom holiday: {$holiday_name} on {$holiday_date} by user {$user_id}");
+        error_log("Added custom holiday: {$holiday_name} on {$holiday_date} by user {$user_id}");
 
         jsonSuccess('เพิ่มวันหยุดสำเร็จ' . ($cancel_count > 0 ? " และยกเลิก {$cancel_count} รายวิชาอัตโนมัติ" : ''), [
             'holiday_id' => $holiday_id,
@@ -264,7 +261,7 @@ function addHoliday() {
         ]);
         
     } catch (Exception $e) {
-        error_log("❌ Error adding holiday: " . $e->getMessage());
+        error_log("Error adding holiday: " . $e->getMessage());
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
@@ -378,7 +375,7 @@ function updateHoliday() {
         
         $conn->close();
         
-        error_log("✅ Updated holiday ID {$holiday_id}: {$holiday_name} on {$holiday_date} by user {$user_id}");
+        error_log("Updated holiday ID {$holiday_id}: {$holiday_name} on {$holiday_date} by user {$user_id}");
         
         jsonSuccess('แก้ไขวันหยุดสำเร็จ', [
             'holiday_id' => $holiday_id,
@@ -388,7 +385,7 @@ function updateHoliday() {
         ]);
         
     } catch (Exception $e) {
-        error_log("❌ Error updating holiday: " . $e->getMessage());
+        error_log("Error updating holiday: " . $e->getMessage());
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
@@ -474,7 +471,7 @@ function deleteHoliday() {
         ]);
         
     } catch (Exception $e) {
-        error_log("❌ Error deleting holiday: " . $e->getMessage());
+        error_log("Error deleting holiday: " . $e->getMessage());
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
@@ -533,7 +530,7 @@ function getHolidayDetails() {
         jsonSuccess('ดึงรายละเอียดวันหยุดสำเร็จ', $holiday);
         
     } catch (Exception $e) {
-        error_log("❌ Error getting holiday details: " . $e->getMessage());
+        error_log("Error getting holiday details: " . $e->getMessage());
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
@@ -659,7 +656,7 @@ function bulkImportHolidays() {
                     'error' => $e->getMessage()
                 ];
                 
-                error_log("❌ Bulk import error at index {$index}: " . $e->getMessage());
+                error_log("Bulk import error at index {$index}: " . $e->getMessage());
             }
         }
         
@@ -672,7 +669,7 @@ function bulkImportHolidays() {
             $message .= ", ข้อผิดพลาด: {$error_count} วัน";
         }
         
-        error_log("✅ Bulk import completed: {$success_count} success, {$error_count} errors");
+        error_log("Bulk import completed: {$success_count} success, {$error_count} errors");
         
         jsonSuccess($message, [
             'success_count' => $success_count,
@@ -685,7 +682,7 @@ function bulkImportHolidays() {
         if (isset($conn)) {
             $conn->rollback();
         }
-        error_log("❌ Bulk import failed: " . $e->getMessage());
+        error_log("Bulk import failed: " . $e->getMessage());
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
@@ -696,7 +693,7 @@ function bulkImportHolidays() {
 function validateHoliday() {
     $academic_year_id = $_POST['academic_year_id'] ?? 0;
     $holiday_date = $_POST['holiday_date'] ?? '';
-    $holiday_id = $_POST['holiday_id'] ?? 0; // สำหรับกรณีแก้ไข
+    $holiday_id = $_POST['holiday_id'] ?? 0;
 
     if (!$academic_year_id) {
         jsonError('ไม่พบข้อมูลปีการศึกษา');
@@ -824,7 +821,7 @@ function validateHoliday() {
         jsonSuccess('ตรวจสอบความถูกต้องเสร็จสิ้น', $validation_result);
 
     } catch (Exception $e) {
-        error_log("❌ Error validating holiday: " . $e->getMessage());
+        error_log("Error validating holiday: " . $e->getMessage());
         jsonError('เกิดข้อผิดพลาด: ' . $e->getMessage());
     }
 }
