@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // ฟังก์ชันสร้างตาราง users และฐานข้อมูล
 function createDatabaseAndTables() {
     try {
-        // เชื่อมต่อ MySQL server (ไม่ระบุฐานข้อมูล)
+        // เชื่อมต่อ MySQL server
         $host = DB_HOST;
         $username = DB_USERNAME;
         $password = DB_PASSWORD;
@@ -147,9 +147,7 @@ function ensureDefaultAdmin() {
             $adminUser = $checkDefaultPassword->fetch(PDO::FETCH_ASSOC);
             
             if ($adminUser) {
-                // ทดสอบว่ารหัสผ่าน '1234' ใช้ได้หรือไม่
                 if (!password_verify('1234', $adminUser['password'])) {
-                    // รหัสผ่านไม่ใช่ '1234' ให้รีเซ็ต
                     $newHash = password_hash('1234', PASSWORD_DEFAULT);
                     $resetPassword = $conn->prepare("UPDATE users SET password = ? WHERE user_id = ?");
                     $resetPassword->execute([$newHash, $adminUser['user_id']]);
@@ -319,7 +317,7 @@ function authenticateAdmin($username, $password) {
             'seccode' => $user['seccode'],
             'secname' => $user['secname'],
             'cid' => $user['cid'],
-            'type' => 'staff', // สำหรับความเข้ากันได้กับระบบ eLogin
+            'type' => 'staff',
             'database_saved' => true,
             'login_method' => 'admin'
         ];

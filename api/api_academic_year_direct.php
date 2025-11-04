@@ -106,7 +106,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // ตรวจสอบการเข้าสู่ระบบ (แบบยืดหยุ่น)
-$user_id = $_SESSION['user_id'] ?? 1; // ใช้ 1 เป็นค่าเริ่มต้นสำหรับ admin
+$user_id = $_SESSION['user_id'] ?? 1;
 
 // รับ action จาก POST หรือ GET
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
