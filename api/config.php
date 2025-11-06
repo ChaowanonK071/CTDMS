@@ -672,7 +672,7 @@ if (!function_exists('callCalendarificAPI')) {
         
         $url = $base_url . '?' . http_build_query($params);
         
-        error_log("🌐 Calendarific API URL: " . $url);
+        error_log("Calendarific API URL: " . $url);
         
         $result = callAPIWithCurl($url, [
             'timeout' => 30,
@@ -683,7 +683,7 @@ if (!function_exists('callCalendarificAPI')) {
         ]);
         
         if (!$result['success']) {
-            error_log("❌ Calendarific API call failed: " . $result['error']);
+            error_log("Calendarific API call failed: " . $result['error']);
             throw new Exception('API call failed: ' . $result['error']);
         }
         
@@ -740,7 +740,7 @@ if (!function_exists('callCalendarificAPI')) {
             ];
         }
         
-        error_log("✅ Calendarific API returned " . count($formattedHolidays) . " holidays for {$country} {$year} (translated to Thai)");
+        error_log("Calendarific API returned " . count($formattedHolidays) . " holidays for {$country} {$year} (translated to Thai)");
         
         return $formattedHolidays;
     }

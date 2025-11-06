@@ -60,11 +60,6 @@ if (!function_exists('isGoogleCalendarConnected')) {
 }
 
 if (!function_exists('autoRefreshTokenOnLogin')) {
-    /**
-     * Auto-refresh Google Calendar Token เมื่อ user login
-     * @param int $user_id ID ของผู้ใช้
-     * @return array ผลลัพธ์การ auto-refresh
-     */
     function autoRefreshTokenOnLogin($user_id) {
         try {
             error_log("Auto-refresh on login for user $user_id");

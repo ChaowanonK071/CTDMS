@@ -41,10 +41,7 @@ register_shutdown_function(function() {
 // ตรวจสอบและโหลด config file
 $config_loaded = false;
 $config_paths = [
-    __DIR__ . '/config.php',
-    __DIR__ . '/../config/database.php',
-    __DIR__ . '/../includes/config.php',
-    dirname(__DIR__) . '/config.php'
+    __DIR__ . '/config.php'
 ];
 
 foreach ($config_paths as $config_path) {
